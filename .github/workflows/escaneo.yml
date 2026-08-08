@@ -48,7 +48,10 @@ jobs:
               print(f"| {tf['label']} | {tf['session']} | {tf['withCrosses']} | {tf['count']} | {tf['errors']} |")
           PY
 
+      # enablement activa GitHub Pages la primera vez sin tocar los ajustes a mano.
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
