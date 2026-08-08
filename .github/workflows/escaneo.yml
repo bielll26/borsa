@@ -25,6 +25,8 @@ concurrency:
 jobs:
   escanear:
     runs-on: ubuntu-latest
+    outputs:
+      pages: ${{ steps.pages.outcome }}
     steps:
       - uses: actions/checkout@v4
 
@@ -72,17 +74,28 @@ jobs:
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
 
-      # enablement activa GitHub Pages la primera vez sin tocar los ajustes a mano.
-      - uses: actions/configure-pages@v5
+      # El token de Actions no puede crear el sitio de Pages, así que la primera
+      # vez hay que activarlo a mano. Mientras tanto el escaneo y el histórico
+      # siguen funcionando: solo se salta la publicación.
+      - id: pages
+        uses: actions/configure-pages@v5
+        continue-on-error: true
         with:
           enablement: true
 
       - uses: actions/upload-pages-artifact@v3
+        if: steps.pages.outcome == 'success'
         with:
           path: docs
 
+      - name: Recordatorio si Pages no está activado
+        if: steps.pages.outcome != 'success'
+        run: |
+          echo "::warning::Panel sin publicar. Actívalo en Settings → Pages → Build and deployment → Source: GitHub Actions y vuelve a lanzar este flujo."
+
   publicar:
     needs: escanear
+    if: needs.escanear.outputs.pages == 'success'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
