@@ -1,8 +1,9 @@
-"""Sondeo temporal: explora la estructura de las fuentes que si responden."""
+"""Sondeo temporal: busca una fuente de históricos diarios usable desde los runners."""
 
 from __future__ import annotations
 
 import html.parser
+import json
 import re
 import urllib.error
 import urllib.request
@@ -30,9 +31,8 @@ class Tablas(html.parser.HTMLParser):
         self._celda = None
 
     def handle_starttag(self, tag, attrs):
-        a = dict(attrs)
         if tag == "table":
-            self._pila.append({"id": a.get("id", ""), "class": a.get("class", ""), "filas": []})
+            self._pila.append({"filas": []})
         elif tag == "tr" and self._pila:
             self._fila = []
         elif tag in ("td", "th") and self._fila is not None:
@@ -53,65 +53,54 @@ class Tablas(html.parser.HTMLParser):
             self.tablas.append(self._pila.pop())
 
 
-def describir_tablas(nombre, url):
-    print(f"\n===== {nombre} :: {url}")
+def mirar(nombre, url, mostrar_tablas=True, buscar=None):
+    print(f"\n===== {nombre}\n      {url}")
     try:
         estado, cuerpo = traer(url)
     except urllib.error.HTTPError as exc:
-        print(f"  HTTP {exc.code}")
+        print(f"      HTTP {exc.code}: {exc.read()[:150].decode('utf-8', 'replace')}")
         return None
     except Exception as exc:
-        print(f"  FALLO {type(exc).__name__}: {exc}")
+        print(f"      FALLO {type(exc).__name__}: {exc}")
         return None
 
-    print(f"  HTTP {estado} · {len(cuerpo)} bytes")
-    p = Tablas()
-    p.feed(cuerpo)
-    for i, t in enumerate(p.tablas):
-        filas = [f for f in t["filas"] if f]
-        if len(filas) < 3:
-            continue
-        print(f"  tabla[{i}] id={t['id']!r} class={t['class']!r} filas={len(filas)}")
-        for fila in filas[:3]:
-            print(f"      {fila[:9]}")
+    print(f"      HTTP {estado} · {len(cuerpo)} bytes")
+    if mostrar_tablas:
+        p = Tablas()
+        p.feed(cuerpo)
+        for i, t in enumerate(p.tablas):
+            filas = [f for f in t["filas"] if f]
+            if len(filas) < 5:
+                continue
+            print(f"      tabla[{i}] filas={len(filas)}")
+            for fila in filas[:3]:
+                print(f"          {fila[:8]}")
+    if buscar:
+        for patron in buscar:
+            m = re.search(patron, cuerpo)
+            print(f"      {patron!r} -> {cuerpo[m.start():m.start() + 220]!r}" if m else f"      {patron!r} -> no aparece")
     return cuerpo
 
 
-def enlaces(cuerpo, patron, limite=6):
-    if not cuerpo:
-        return
-    vistos = re.findall(r'href="([^"]*)"', cuerpo)
-    coinciden = [h for h in vistos if re.search(patron, h, re.I)]
-    print(f"  enlaces {patron}: {coinciden[:limite]}")
-
-
 if __name__ == "__main__":
-    cuerpo = describir_tablas(
-        "BME IBEX 35 precios",
-        "https://www.bolsamadrid.es/esp/aspx/Mercados/Precios.aspx?indice=ESI100000000")
-    enlaces(cuerpo, r"ISIN=")
-    enlaces(cuerpo, r"hist|Hist")
+    mirar("stockanalysis histórico SAN (BME)",
+          "https://stockanalysis.com/quote/bme/SAN/history/")
 
-    describir_tablas(
-        "BME mercado continuo",
-        "https://www.bolsamadrid.es/esp/aspx/Mercados/Precios.aspx?indice=ESIB00000000")
+    mirar("stockanalysis histórico SAN 5 años",
+          "https://stockanalysis.com/quote/bme/SAN/history/?range=5Y&period=Daily")
 
-    cuerpo = describir_tablas(
-        "BME info historica Santander",
-        "https://www.bolsamadrid.es/esp/aspx/Empresas/InfHistorica.aspx?ISIN=ES0113900J37&ClvEmis=113900")
-    enlaces(cuerpo, r"csv|excel|xls|Descarga")
+    mirar("stockanalysis __data.json",
+          "https://stockanalysis.com/quote/bme/SAN/history/__data.json?x-sveltekit-invalidated=001",
+          mostrar_tablas=False, buscar=[r'"close"', r'"data"'])
 
-    for nombre, url in [
-        ("google finance SAN", "https://www.google.com/finance/quote/SAN:BME"),
-        ("yahoo html es", "https://es.finance.yahoo.com/quote/SAN.MC/history"),
-        ("stockanalysis v2", "https://stockanalysis.com/quote/bme/SAN/history/"),
-        ("investing api", "https://api.investing.com/api/financialdata/historical/1150?start-date=2026-01-01&end-date=2026-08-08&time-frame=Daily"),
-    ]:
-        print(f"\n===== {nombre} :: {url}")
-        try:
-            estado, cuerpo = traer(url)
-            print(f"  HTTP {estado} · {len(cuerpo)} bytes · {cuerpo[:200]!r}")
-        except urllib.error.HTTPError as exc:
-            print(f"  HTTP {exc.code}")
-        except Exception as exc:
-            print(f"  FALLO {type(exc).__name__}: {exc}")
+    for ruta in ["api/charts/s/bme/SAN/max",
+                 "api/charts/s/bme/SAN/1Y",
+                 "api/symbol/b/bme/SAN/history"]:
+        mirar(f"stockanalysis {ruta}", f"https://stockanalysis.com/{ruta}",
+              mostrar_tablas=False, buscar=[r'\['])
+
+    mirar("stockanalysis valor pequeño (LGT)",
+          "https://stockanalysis.com/quote/bme/LGT/history/")
+
+    mirar("stockanalysis listado BME",
+          "https://stockanalysis.com/quote/bme/", mostrar_tablas=True)
