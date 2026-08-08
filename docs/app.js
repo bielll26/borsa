@@ -412,7 +412,12 @@
       pintar();
     });
 
-    $("#recargar").addEventListener("click", () => refrescar({ forzar: true }));
+    $("#recargar").addEventListener("click", () => {
+      // Recargar a mano vuelve a intentar el escaneo en vivo aunque antes fallara.
+      estado.directoDisponible = null;
+      estado.apiViva = null;
+      refrescar({ forzar: true });
+    });
 
     $("#tema").addEventListener("click", () => {
       const actual = document.documentElement.dataset.tema;

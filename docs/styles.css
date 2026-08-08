@@ -299,7 +299,7 @@ main { max-width: 1280px; margin: 0 auto; }
   font-variant-numeric: tabular-nums;
 }
 
-.tarjeta__precio { text-align: right; font-variant-numeric: tabular-nums; }
+.tarjeta__precio { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tarjeta__precio b { display: block; font-size: 15px; }
 
 .tarjeta__cruces { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 7px; }
