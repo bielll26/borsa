@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cruces de medias 7/50/200 · Bolsa española</title>
+<meta name="description" content="Detector de cruces de las medias móviles de 7, 50 y 200 periodos en el IBEX 35 y el Mercado Continuo.">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
+</head>
+<body>
+<header class="cabecera">
+  <div class="cabecera__texto">
+    <h1>Cruces de medias <span class="periodos">7 · 50 · 200</span></h1>
+    <p class="subtitulo">IBEX 35 y Mercado Continuo — valores en los que las medias se han cruzado durante la sesión</p>
+  </div>
+  <div class="cabecera__acciones">
+    <span id="sello" class="sello" title="Momento del último escaneo">cargando…</span>
+    <button id="recargar" class="boton-icono" type="button" title="Volver a cargar">↻</button>
+    <button id="tema" class="boton-icono" type="button" title="Cambiar tema" aria-label="Cambiar tema">
+      <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true">
+        <circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M10 2.5a7.5 7.5 0 0 0 0 15z" fill="currentColor"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<section class="controles" aria-label="Filtros">
+  <div class="control">
+    <label class="control__etiqueta">Marco temporal</label>
+    <div id="tf" class="segmentado" role="group"></div>
+  </div>
+  <div class="control">
+    <label class="control__etiqueta">Mercado</label>
+    <div id="universo" class="segmentado" role="group">
+      <button type="button" data-valor="ibex35">IBEX 35</button>
+      <button type="button" data-valor="continuo">Continuo</button>
+      <button type="button" data-valor="todos" class="activo">Todos</button>
+    </div>
+  </div>
+  <div class="control">
+    <label class="control__etiqueta">Cruce entre</label>
+    <div id="pares" class="chips" role="group">
+      <button type="button" data-valor="7x50" class="activo">7 × 50</button>
+      <button type="button" data-valor="7x200" class="activo">7 × 200</button>
+      <button type="button" data-valor="50x200" class="activo">50 × 200</button>
+    </div>
+  </div>
+  <div class="control">
+    <label class="control__etiqueta">Dirección</label>
+    <div id="direcciones" class="chips" role="group">
+      <button type="button" data-valor="alcista" class="activo alcista">▲ Alcista</button>
+      <button type="button" data-valor="bajista" class="activo bajista">▼ Bajista</button>
+    </div>
+  </div>
+  <div class="control control--crece">
+    <label class="control__etiqueta" for="busqueda">Buscar</label>
+    <input id="busqueda" type="search" placeholder="Santander, IBE.MC…" autocomplete="off">
+  </div>
+</section>
+
+<main>
+  <section class="bloque">
+    <h2 class="bloque__titulo">Cruces de la sesión <span id="contador-cruces" class="contador">—</span></h2>
+    <p id="sesion" class="bloque__nota"></p>
+    <div id="senales" class="tarjetas"></div>
+    <p id="sin-senales" class="vacio" hidden>Ningún valor ha cruzado sus medias en esta sesión con los filtros seleccionados.</p>
+  </section>
+
+  <section class="bloque">
+    <h2 class="bloque__titulo">A punto de cruzar <span id="contador-cerca" class="contador">—</span></h2>
+    <p class="bloque__nota">Valores cuyas medias están separadas menos de un 0,5 %: candidatos a cruzar en las próximas velas.</p>
+    <div id="cercanos" class="lista-cercanos"></div>
+  </section>
+
+  <section class="bloque">
+    <h2 class="bloque__titulo">Todos los valores <span id="contador-tabla" class="contador">—</span></h2>
+    <div class="tabla-envoltorio">
+      <table class="tabla" id="tabla">
+        <thead>
+          <tr>
+            <th data-orden="name">Valor</th>
+            <th data-orden="price" class="num">Último</th>
+            <th data-orden="changePct" class="num">Var. %</th>
+            <th data-orden="sma7" class="num">MM 7</th>
+            <th data-orden="sma50" class="num">MM 50</th>
+            <th data-orden="sma200" class="num">MM 200</th>
+            <th data-orden="align">Tendencia</th>
+            <th data-orden="crosses">Cruces hoy</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="bloque" id="bloque-errores" hidden>
+    <h2 class="bloque__titulo">Sin datos <span id="contador-errores" class="contador">—</span></h2>
+    <p class="bloque__nota">Tickers que el proveedor no ha devuelto: suelen ser valores excluidos de cotización o cambios de composición del índice. Edita <code>scanner/universe.py</code> para ajustarlos.</p>
+    <div id="errores" class="lista-errores"></div>
+  </section>
+</main>
+
+<footer class="pie">
+  <p><strong>Cómo funciona:</strong> se descargan las velas de cada valor, se calculan las medias móviles simples de 7, 50 y 200 periodos sobre el cierre y se marca un cruce cuando la media rápida atraviesa a la lenta dentro de la sesión en curso.</p>
+  <p>Datos de Yahoo Finance, con retardo. Un robot los actualiza cada 15 minutos mientras la bolsa está abierta. Esto es una herramienta de análisis técnico, <strong>no es asesoramiento de inversión</strong>.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

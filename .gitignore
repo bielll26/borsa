@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+
+# Los datos los genera el escaneo (en local o en GitHub Actions), no se versionan.
+docs/data/

@@ -1,0 +1,65 @@
+name: Escaneo de cruces y publicación
+
+on:
+  # Cada 15 minutos durante el horario de la bolsa española (cubre CET y CEST).
+  schedule:
+    - cron: "*/15 6-17 * * 1-5"
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - claude/moving-average-crossover-app-9vuqjc
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Un solo despliegue a la vez; si llega otro escaneo, el anterior se descarta.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  escanear:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Pruebas
+        run: python -m unittest discover -s tests -t .
+
+      - name: Escanear el mercado
+        run: python -m scanner.scan --universo todos --timeframes 15m,60m,1d --salida docs/data --resumen
+
+      - name: Resumen del escaneo
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          indice = json.loads(pathlib.Path("docs/data/index.json").read_text())
+          print(f"### Escaneo {indice['generatedAt']}\n")
+          print("| Marco | Sesión | Con cruce | Valores | Sin datos |")
+          print("|---|---|---:|---:|---:|")
+          for tf in indice["timeframes"]:
+              print(f"| {tf['label']} | {tf['session']} | {tf['withCrosses']} | {tf['count']} | {tf['errors']} |")
+          PY
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  publicar:
+    needs: escanear
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
