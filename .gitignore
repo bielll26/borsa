@@ -4,5 +4,5 @@ __pycache__/
 venv/
 .DS_Store
 
-# Los datos los genera el escaneo (en local o en GitHub Actions), no se versionan.
-docs/data/
+# Los datos del escaneo diario sí se versionan: con GitHub Pages en modo "rama"
+# es la única forma de que el panel publicado tenga datos de respaldo.

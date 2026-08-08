@@ -61,12 +61,13 @@ jobs:
           PY
 
       # El histórico crece con cada escaneo: es lo que permite que el panel
-      # publicado acabe detectando también los cruces de 50 y 200.
-      - name: Guardar el histórico acumulado
+      # publicado acabe detectando también los cruces de 50 y 200. El JSON del
+      # panel va al repositorio para que también lo sirva Pages en modo "rama".
+      - name: Guardar el histórico y los datos del panel
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add datos/historico
+          git add datos/historico docs/data
           if git diff --cached --quiet; then
             echo "El histórico no ha cambiado."
           else
