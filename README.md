@@ -3,21 +3,22 @@
 Detecta, entre los 35 valores del IBEX 35 y el resto del Mercado Continuo, **en cuáles se ha
 producido un cruce de las medias móviles de 7, 50 y 200 periodos durante la sesión**.
 
-Se vigilan los tres pares posibles: **7 × 50**, **7 × 200** y **50 × 200**, en tres marcos
+Se vigilan los tres pares posibles —**7 × 50**, **7 × 200** y **50 × 200**— en tres marcos
 temporales (15 minutos, 1 hora y diario), distinguiendo cruce **alcista** (la media rápida
 atraviesa hacia arriba a la lenta) y **bajista**.
 
 ## Cómo usarla
 
-### 1. Web publicada (sin instalar nada)
-
-El panel se publica en GitHub Pages y un robot lo actualiza cada 15 minutos mientras la bolsa
-está abierta:
+### 1. Web publicada
 
 > **https://bielll26.github.io/borsa/**
 
-Para activarlo la primera vez: **Settings → Pages → Build and deployment → Source: _GitHub
-Actions_**. A partir de ahí el flujo `.github/workflows/escaneo.yml` escanea y publica solo.
+El panel pide las cotizaciones a Yahoo Finance **desde tu propio navegador**, así que ves el
+histórico completo y las velas intradía del momento sin instalar nada. La barra de progreso
+muestra el avance mientras consulta los 85 valores.
+
+Si tu navegador o tu red bloquean esa consulta, el panel cae automáticamente en los datos que
+publica el robot del repositorio y te lo dice en un aviso.
 
 ### 2. En local, con datos del momento
 
@@ -25,13 +26,13 @@ Actions_**. A partir de ahí el flujo `.github/workflows/escaneo.yml` escanea y 
 python3 -m scanner.server        # abre http://localhost:8000
 ```
 
-El servidor local descarga cotizaciones frescas en cada petición (caché de 60 s), así que los
-cruces se ven en el momento en lugar de con el retardo del robot.
+El servidor descarga las cotizaciones él mismo (caché de 60 s). Útil si prefieres que el
+trabajo lo haga tu máquina y no el navegador.
 
 ### 3. Por consola
 
 ```bash
-python3 -m scanner.scan --universo ibex35 --timeframes 15m --salida docs/data --resumen
+python3 -m scanner.scan --universo ibex35 --timeframes 15m --resumen
 ```
 
 ```
@@ -40,9 +41,37 @@ python3 -m scanner.scan --universo ibex35 --timeframes 15m --salida docs/data --
   TEF.MC    Telefonica         7x200 bajista a las 12:45
 ```
 
-Opciones: `--universo ibex35|continuo|todos`, `--timeframes 15m,60m,1d`, `--workers N`.
+Opciones: `--universo ibex35|continuo|todos`, `--timeframes 15m,60m,1d`, `--salida DIR`,
+`--historico DIR`, `--workers N`.
 
 No hace falta instalar dependencias: todo es biblioteca estándar de Python 3.9+.
+
+## De dónde salen los datos
+
+Yahoo Finance es la única fuente gratuita con histórico intradía de la bolsa española, pero
+**responde `429 Too Many Requests` a las peticiones que salen de centros de datos**, incluidos
+los runners de GitHub Actions (comprobado con `tools/diagnostico_proveedores.py`). De ahí el
+reparto:
+
+| Quién escanea | Fuente | Qué alcanza |
+|---|---|---|
+| Tu navegador, al abrir el panel | Yahoo Finance | Todo: 15 min, 1 hora y diario, con histórico para la media de 200 |
+| `python3 -m scanner.server` en tu equipo | Yahoo Finance | Lo mismo, calculado en tu máquina |
+| El robot de GitHub Actions | stockanalysis.com | Solo el cierre diario, unas 50 sesiones por petición |
+
+Como 50 sesiones no bastan ni para un cruce de la media de 50 (hacen falta 51 velas, y 201
+para la de 200), cada escaneo del robot **acumula los cierres en `datos/historico/`**. La serie
+crece sola con cada sesión, y el panel publicado va detectando cada vez más cruces.
+
+Ese histórico se puede rellenar de golpe desde un equipo donde Yahoo sí responda:
+
+```bash
+python3 -m scanner.scan --universo todos --timeframes 1d --historico datos/historico
+git add datos/historico && git commit -m "Histórico inicial" && git push
+```
+
+Con eso la versión publicada pasa a tener dos años de cierres y las tres medias desde el
+primer momento.
 
 ## Qué muestra el panel
 
@@ -61,17 +90,26 @@ Filtros por mercado, marco temporal, par de medias, dirección y búsqueda por n
 
 ```
 scanner/universe.py     Tickers del IBEX 35 y del Mercado Continuo (editable)
-scanner/providers.py    Descarga de velas (Yahoo Finance, con respaldo en Stooq para diario)
+scanner/providers.py    Descarga de velas: Yahoo Finance y respaldos diarios
 scanner/indicators.py   Medias móviles simples y detección de cruces
+scanner/historico.py    Acumulación de cierres diarios en CSV por valor
 scanner/scan.py         Orquestación y generación del JSON
 scanner/server.py       Servidor local con escaneo en vivo
-docs/                   Panel web estático que consume docs/data/*.json
-tests/                  Pruebas de las medias, los cruces y el análisis por valor
+docs/                   Panel web: mercado.js escanea desde el navegador, app.js pinta
+docs/universo.js        Copia del universo para el navegador (generada, no editar)
+tools/                  Generador del universo y diagnóstico de proveedores
+tests/                  Pruebas de medias, cruces, análisis por valor e histórico
 ```
 
 ```bash
 python3 -m unittest discover -s tests -t .
+python3 tools/generar_universo.py        # tras tocar scanner/universe.py
+python3 tools/diagnostico_proveedores.py # si todo aparece como "sin datos"
 ```
+
+`scanner/scan.py` y `docs/mercado.js` implementan el mismo cálculo por duplicado (uno para el
+servidor, otro para el navegador). Sobre las mismas series producen resultados idénticos, hasta
+la marca de tiempo de cada cruce.
 
 ## Detalles que conviene saber
 
@@ -83,5 +121,5 @@ python3 -m unittest discover -s tests -t .
   cruce se busca en la vela de hoy.
 - **Composición del IBEX 35.** Se revisa cada seis meses. La lista vive en `scanner/universe.py`
   y cualquier ticker que deje de dar datos aparece en el apartado «Sin datos» del panel.
-- **Datos.** Yahoo Finance, con retardo respecto al mercado. Herramienta de análisis técnico:
-  **no es asesoramiento de inversión**.
+- **Cotizaciones con retardo.** Herramienta de análisis técnico: **no es asesoramiento de
+  inversión**.

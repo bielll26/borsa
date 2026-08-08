@@ -5,9 +5,15 @@
 
 from __future__ import annotations
 
+import calendar
 import datetime as dt
+import pathlib
+import shutil
+import sys
+import tempfile
 import unittest
 
+from scanner import historico as hist
 from scanner import indicators as ind
 from scanner import providers
 from scanner.scan import MADRID, analizar
@@ -80,6 +86,12 @@ class TestAuxiliares(unittest.TestCase):
         self.assertEqual(ind.alineacion(2, 1, None), "desconocida")
 
 
+def _ts(fecha: str) -> int:
+    """Epoch a las 12:00 UTC de una fecha ISO, como guarda el historico."""
+    y, m, d = (int(p) for p in fecha.split("-"))
+    return calendar.timegm((y, m, d, 12, 0, 0, 0, 0, 0))
+
+
 def _velas_sinteticas(n_previas: int, n_hoy: int, precios) -> providers.Velas:
     """Genera velas de 15 minutos: `n_previas` en dias anteriores y `n_hoy` en la ultima sesion."""
     total = n_previas + n_hoy
@@ -139,6 +151,66 @@ class TestAnalizar(unittest.TestCase):
         resultado = analizar(self.valor, velas, "1d")
         for cruce in resultado["crosses"]:
             self.assertEqual(cruce["time"], resultado["lastBar"])
+
+
+class TestHistorico(unittest.TestCase):
+    """El historico acumulado es lo que permite que el panel publicado mejore solo."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
+
+    def test_guardar_y_cargar(self):
+        velas = providers.Velas([_ts("2026-08-05"), _ts("2026-08-06")], [10.5, 11.25], "test")
+        self.assertEqual(hist.guardar(self.dir, "SAN.MC", velas), 2)
+
+        recuperadas = hist.cargar(self.dir, "SAN.MC")
+        self.assertEqual(recuperadas.closes, [10.5, 11.25])
+        self.assertEqual(recuperadas.timestamps, velas.timestamps)
+
+    def test_cargar_sin_fichero(self):
+        self.assertIsNone(hist.cargar(self.dir, "NOEXISTE.MC"))
+
+    def test_combinar_une_por_fecha_y_ordena(self):
+        previas = providers.Velas([_ts("2026-08-03"), _ts("2026-08-04")], [1.0, 2.0], "historico")
+        nuevas = providers.Velas([_ts("2026-08-05"), _ts("2026-08-04")], [4.0, 3.0], "yahoo")
+
+        unidas = hist.combinar(previas, nuevas)
+        self.assertEqual(unidas.closes, [1.0, 3.0, 4.0])  # el 4 de agosto lo pisa la nueva
+
+    def test_combinar_tolera_ausencias(self):
+        velas = providers.Velas([_ts("2026-08-05")], [9.0], "yahoo")
+        self.assertEqual(hist.combinar(None, velas).closes, [9.0])
+        self.assertEqual(hist.combinar(velas, None).closes, [9.0])
+        self.assertIsNone(hist.combinar(None, None))
+
+    def test_la_serie_acumulada_desbloquea_el_cruce_de_50(self):
+        # Con 50 sesiones la media de 50 solo existe en la ultima vela, asi que
+        # no hay cruce posible: hacen falta dos velas seguidas con ambas medias.
+        # Al acumular una sesion mas, el mismo movimiento ya se detecta.
+        precios = [50.0 - i * 0.2 for i in range(50)] + [200.0]
+        fechas = [_ts(f"2026-0{5 + (d // 28)}-{d % 28 + 1:02d}") for d in range(51)]
+        valor = Valor("TEST.MC", "Prueba", "ibex35")
+
+        corta = providers.Velas(fechas[:50], precios[:50], "respaldo")
+        self.assertEqual(analizar(valor, corta, "1d")["crosses"], [])
+
+        larga = providers.Velas(fechas, precios, "respaldo")
+        cruces_larga = analizar(valor, larga, "1d")["crosses"]
+        self.assertEqual([(c["pair"], c["dir"]) for c in cruces_larga], [("7x50", "alcista")])
+
+
+class TestUniversoGenerado(unittest.TestCase):
+    """docs/universo.js es la copia que usa el navegador: no debe quedarse atrás."""
+
+    def test_universo_js_al_dia(self):
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
+        from generar_universo import DESTINO, render
+
+        self.assertTrue(DESTINO.exists(), "falta docs/universo.js")
+        self.assertEqual(
+            DESTINO.read_text(encoding="utf-8"), render(),
+            "docs/universo.js está desincronizado: ejecuta python3 tools/generar_universo.py")
 
 
 class TestUniverso(unittest.TestCase):

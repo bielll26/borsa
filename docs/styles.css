@@ -447,3 +447,40 @@ main { max-width: 1280px; margin: 0 auto; }
   .cabecera { padding-top: 20px; }
   .controles { gap: 14px 16px; }
 }
+
+/* --- Barra de progreso del escaneo en vivo --- */
+.progreso {
+  position: relative;
+  max-width: 1280px;
+  margin: -10px auto 24px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--superficie-2);
+  border: 1px solid var(--borde);
+  overflow: hidden;
+}
+
+.progreso__barra {
+  height: 100%;
+  width: 0;
+  background: color-mix(in srgb, var(--acento) 22%, transparent);
+  border-right: 2px solid var(--acento);
+  transition: width .25s ease;
+}
+
+.progreso__texto {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.sello--vivo {
+  border-color: color-mix(in srgb, var(--alcista) 45%, transparent);
+  color: var(--alcista);
+  background: var(--alcista-fondo);
+}

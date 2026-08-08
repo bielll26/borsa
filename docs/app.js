@@ -21,7 +21,9 @@
     orden: { campo: "crosses", dir: "desc" },
     datos: null,
     cache: new Map(),
+    publicados: null, // marcos temporales que el robot llegó a publicar
     apiViva: null, // null = sin comprobar, true/false = hay servidor local de escaneo
+    directoDisponible: null, // null = sin comprobar, true/false = Yahoo acepta al navegador
   };
 
   const $ = (sel) => document.querySelector(sel);
@@ -38,49 +40,95 @@
 
   /* ---------- Carga de datos ---------- */
 
+  // El índice solo dice qué marcos temporales alcanzó a publicar el robot; los
+  // botones son siempre los tres, porque el escaneo desde el navegador los cubre.
   async function cargarIndice() {
     try {
       const resp = await fetch("data/index.json", { cache: "no-store" });
       if (!resp.ok) throw new Error(resp.status);
       const indice = await resp.json();
-      if (Array.isArray(indice.timeframes) && indice.timeframes.length) {
-        estado.timeframes = indice.timeframes;
-      }
+      estado.publicados = new Set((indice.timeframes || []).map((t) => t.id));
     } catch {
-      /* sin índice se usan los marcos temporales por defecto */
-    }
-    if (!estado.timeframes.some((t) => t.id === estado.tf)) {
-      estado.tf = estado.timeframes[0].id;
+      estado.publicados = null;
     }
   }
 
   async function cargarDatos(tf, { forzar = false } = {}) {
     if (!forzar && estado.cache.has(tf)) return estado.cache.get(tf);
 
-    // En local puede estar corriendo `python -m scanner.server`, que escanea en vivo.
-    // Se prueba una sola vez: si no responde, se usan los ficheros estáticos.
-    if (EN_LOCAL && estado.apiViva !== false) {
-      try {
-        const resp = await fetch(`/api/scan?tf=${encodeURIComponent(tf)}&universo=todos`,
-          { cache: "no-store" });
-        estado.apiViva = resp.ok;
-        if (resp.ok) {
-          const datos = await resp.json();
-          datos.envivo = true;
-          estado.cache.set(tf, datos);
-          return datos;
-        }
-      } catch {
-        estado.apiViva = false;
-      }
-    }
-
-    const meta = estado.timeframes.find((t) => t.id === tf);
-    const resp = await fetch(`data/${meta?.file || tf + ".json"}`, { cache: "no-store" });
-    if (!resp.ok) throw new Error(`No hay datos para ${tf} (HTTP ${resp.status})`);
-    const datos = await resp.json();
+    // Tres orígenes, de mejor a peor: el servidor local si está en marcha, el
+    // escaneo desde el propio navegador y, como último recurso, lo que publicó
+    // el robot (que solo alcanza cierres diarios).
+    const datos = (await servidorLocal(tf)) || (await escaneoDirecto(tf)) || (await publicado(tf));
     estado.cache.set(tf, datos);
     return datos;
+  }
+
+  // `python -m scanner.server` sirve el panel y escanea en vivo en cada petición.
+  async function servidorLocal(tf) {
+    if (!EN_LOCAL || estado.apiViva === false) return null;
+    try {
+      const resp = await fetch(`/api/scan?tf=${encodeURIComponent(tf)}&universo=todos`,
+        { cache: "no-store" });
+      estado.apiViva = resp.ok;
+      if (!resp.ok) return null;
+      const datos = await resp.json();
+      datos.envivo = true;
+      datos.origen = "local";
+      return datos;
+    } catch {
+      estado.apiViva = false;
+      return null;
+    }
+  }
+
+  async function escaneoDirecto(tf) {
+    if (!window.Mercado || estado.directoDisponible === false) return null;
+    if (estado.directoDisponible === null) {
+      estado.directoDisponible = await window.Mercado.disponible();
+      if (!estado.directoDisponible) return null;
+    }
+    try {
+      mostrarProgreso(0, (window.UNIVERSO || []).length);
+      const datos = await window.Mercado.escanear(tf, { alProgresar: mostrarProgreso });
+      datos.origen = "directo";
+      return datos;
+    } catch (err) {
+      estado.directoDisponible = false;
+      console.warn("Escaneo directo no disponible:", err);
+      return null;
+    } finally {
+      ocultarProgreso();
+    }
+  }
+
+  async function publicado(tf) {
+    const meta = estado.timeframes.find((t) => t.id === tf);
+    if (estado.publicados && !estado.publicados.has(tf)) {
+      throw new Error(`el robot solo publica el marco diario, y este navegador no ha podido `
+        + `consultar las cotizaciones de ${meta?.label || tf} directamente`);
+    }
+    const resp = await fetch(`data/${meta?.file || tf + ".json"}`, { cache: "no-store" });
+    if (!resp.ok) throw new Error(`no hay datos publicados para ${tf} (HTTP ${resp.status})`);
+    const datos = await resp.json();
+    datos.origen = "publicado";
+    return datos;
+  }
+
+  /* ---------- Progreso ---------- */
+
+  function mostrarProgreso(hechos, total) {
+    const barra = $("#progreso");
+    barra.hidden = false;
+    // El escaneo directo tarda; en cuanto empieza a avanzar se devuelve la página al usuario.
+    document.body.classList.remove("cargando");
+    $("#progreso-barra").style.width = total ? `${(hechos / total) * 100}%` : "0%";
+    $("#progreso-texto").textContent = `Consultando cotizaciones… ${hechos}/${total}`;
+  }
+
+  function ocultarProgreso() {
+    $("#progreso").hidden = true;
+    $("#progreso-barra").style.width = "0%";
   }
 
   /* ---------- Filtrado ---------- */
@@ -231,12 +279,30 @@
       .join("");
   }
 
+  const ORIGENES = {
+    local: { texto: "En vivo · servidor local", detalle: "Escaneo hecho por python -m scanner.server" },
+    directo: { texto: "En vivo · tu navegador", detalle: "Cotizaciones pedidas a Yahoo Finance desde este navegador" },
+    publicado: { texto: "Publicado por el robot", detalle: "Último escaneo hecho en GitHub Actions" },
+  };
+
   function pintarSello() {
     const d = estado.datos;
     if (!d) return;
     const generado = d.generatedAt ? `${d.generatedAt.slice(11, 16)}` : "—";
-    $("#sello").textContent = `Actualizado ${generado}${d.envivo ? " · en vivo" : ""}`;
+    $("#sello").textContent = `Actualizado ${generado}`;
     $("#sello").title = `Escaneo del ${d.generatedAt || "?"} · ${d.count} valores`;
+
+    const origen = ORIGENES[d.origen] || ORIGENES.publicado;
+    $("#fuente").textContent = origen.texto;
+    $("#fuente").title = origen.detalle;
+    $("#fuente").classList.toggle("sello--vivo", d.origen !== "publicado");
+
+    if (d.origen === "publicado" && d.missing200) {
+      mostrarAviso(`Datos de respaldo: el robot solo consigue las últimas ${
+        Math.max(...(d.results || []).map((r) => r.bars || 0), 0)} sesiones diarias, ` +
+        `así que en ${d.missing200} valores no hay historia suficiente para la media de 200. ` +
+        `Abre el panel desde una conexión doméstica o usa el servidor local para ver los datos completos.`);
+    }
     $("#sesion").textContent = d.session
       ? `Sesión del ${new Date(d.session + "T12:00:00").toLocaleDateString("es-ES", {
           weekday: "long", day: "numeric", month: "long", year: "numeric" })} · velas de ${d.label?.toLowerCase() || d.timeframe}.`
@@ -292,22 +358,34 @@
     await refrescar();
   }
 
-  async function refrescar({ forzar = false } = {}) {
+  async function refrescar({ forzar = false, reintentar = true } = {}) {
     document.body.classList.add("cargando");
     try {
       estado.datos = await cargarDatos(estado.tf, { forzar });
       document.querySelector(".aviso")?.remove();
       pintar();
     } catch (err) {
-      mostrarAviso(`No se han podido cargar los datos: ${err.message}. ` +
-        `Si acabas de publicar la web, espera a que el robot haga el primer escaneo.`);
+      // Sin escaneo directo solo hay datos del marco que publica el robot:
+      // se cambia a él en vez de dejar la página vacía.
+      const alternativa = [...(estado.publicados || [])][0];
+      if (reintentar && alternativa && alternativa !== estado.tf) {
+        const previo = estado.timeframes.find((t) => t.id === estado.tf)?.label || estado.tf;
+        estado.tf = alternativa;
+        pintarBotonesTf();
+        await refrescar({ forzar, reintentar: false });
+        mostrarAviso(`No se ha podido consultar ${previo} desde este navegador, así que se ` +
+          `muestra el marco que publica el robot. El servidor local sí cubre el intradía.`,
+          { reemplazar: false });
+        return;
+      }
+      mostrarAviso(`No se han podido cargar los datos: ${err.message}.`);
     } finally {
       document.body.classList.remove("cargando");
     }
   }
 
-  function mostrarAviso(mensaje) {
-    document.querySelector(".aviso")?.remove();
+  function mostrarAviso(mensaje, { reemplazar = true } = {}) {
+    if (reemplazar) document.querySelectorAll(".aviso").forEach((n) => n.remove());
     const div = document.createElement("div");
     div.className = "aviso";
     div.textContent = mensaje;

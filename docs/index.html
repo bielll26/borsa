@@ -15,6 +15,7 @@
     <p class="subtitulo">IBEX 35 y Mercado Continuo — valores en los que las medias se han cruzado durante la sesión</p>
   </div>
   <div class="cabecera__acciones">
+    <span id="fuente" class="sello" title="Origen de los datos"></span>
     <span id="sello" class="sello" title="Momento del último escaneo">cargando…</span>
     <button id="recargar" class="boton-icono" type="button" title="Volver a cargar">↻</button>
     <button id="tema" class="boton-icono" type="button" title="Cambiar tema" aria-label="Cambiar tema">
@@ -60,6 +61,11 @@
   </div>
 </section>
 
+<div id="progreso" class="progreso" hidden>
+  <div id="progreso-barra" class="progreso__barra"></div>
+  <span id="progreso-texto" class="progreso__texto"></span>
+</div>
+
 <main>
   <section class="bloque">
     <h2 class="bloque__titulo">Cruces de la sesión <span id="contador-cruces" class="contador">—</span></h2>
@@ -104,9 +110,12 @@
 
 <footer class="pie">
   <p><strong>Cómo funciona:</strong> se descargan las velas de cada valor, se calculan las medias móviles simples de 7, 50 y 200 periodos sobre el cierre y se marca un cruce cuando la media rápida atraviesa a la lenta dentro de la sesión en curso.</p>
-  <p>Datos de Yahoo Finance, con retardo. Un robot los actualiza cada 15 minutos mientras la bolsa está abierta. Esto es una herramienta de análisis técnico, <strong>no es asesoramiento de inversión</strong>.</p>
+  <p><strong>De dónde salen los datos:</strong> el panel se los pide a Yahoo Finance desde tu propio navegador, así que ves el histórico completo y las velas intradía del momento. Si tu navegador o tu red lo impiden, se muestran los datos que publica el robot del repositorio, que solo alcanza cierres diarios de las últimas semanas.</p>
+  <p>Cotizaciones con retardo. Esto es una herramienta de análisis técnico, <strong>no es asesoramiento de inversión</strong>.</p>
 </footer>
 
+<script src="universo.js"></script>
+<script src="mercado.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

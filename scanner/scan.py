@@ -15,6 +15,7 @@ import os
 import sys
 from typing import Dict, List, Optional, Tuple
 
+from . import historico as hist
 from . import indicators as ind
 from . import providers
 from .universe import Valor, universo
@@ -107,30 +108,61 @@ def analizar(valor: Valor, velas: providers.Velas, timeframe: str) -> dict:
     }
 
 
-def _descargar(valor: Valor, timeframe: str) -> providers.Velas:
+def _descargar(valor: Valor, timeframe: str,
+               historico_dir: Optional[str] = None) -> providers.Velas:
+    """Yahoo primero; si rechaza la peticion, se recurre a los respaldos diarios.
+
+    Yahoo responde 429 a las IP de centros de datos (por ejemplo los runners de
+    GitHub), asi que en ese entorno solo funcionan los respaldos, que unicamente
+    ofrecen velas diarias y de las ultimas semanas. Con `historico_dir` esas
+    sesiones se acumulan en el repositorio y la serie deja de depender de lo que
+    alcance a dar el proveedor en una sola peticion.
+    """
     cfg = TIMEFRAMES[timeframe]
+    descargadas: Optional[providers.Velas] = None
+    fallo: Optional[providers.DataError] = None
     try:
-        return providers.yahoo_chart(valor.symbol, cfg["interval"], cfg["range"])
-    except providers.DataError:
-        if timeframe != "1d":
-            raise
-        return providers.stooq_diario(valor.symbol)  # respaldo solo para diario
+        descargadas = providers.yahoo_chart(valor.symbol, cfg["interval"], cfg["range"])
+    except providers.DataError as exc:
+        fallo = exc
+        if timeframe == "1d":
+            for respaldo in (providers.stockanalysis_diario, providers.stooq_diario):
+                try:
+                    descargadas = respaldo(valor.symbol)
+                    break
+                except providers.DataError:
+                    continue
+
+    if timeframe != "1d" or not historico_dir:
+        if descargadas is None:
+            raise fallo or providers.DataError(f"{valor.symbol}: sin datos")
+        return descargadas
+
+    serie = hist.combinar(hist.cargar(historico_dir, valor.symbol), descargadas)
+    if serie is None:
+        raise fallo or providers.DataError(f"{valor.symbol}: sin datos")
+    if descargadas is not None:
+        hist.guardar(historico_dir, valor.symbol, serie)
+    return serie
 
 
-def escanear(valores: List[Valor], timeframe: str, *, workers: int = 6) -> dict:
+def escanear(valores: List[Valor], timeframe: str, *, workers: int = 6,
+             historico_dir: Optional[str] = None) -> dict:
     """Escanea un universo completo en un marco temporal."""
     resultados: List[dict] = []
     errores: List[dict] = []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-        futuros = {pool.submit(_descargar, v, timeframe): v for v in valores}
+        futuros = {pool.submit(_descargar, v, timeframe, historico_dir): v for v in valores}
         for futuro in concurrent.futures.as_completed(futuros):
             valor = futuros[futuro]
             try:
                 velas = futuro.result()
-                if len(velas.closes) < max(PERIODOS):
+                # Con menos velas que el periodo mayor todavia se pueden calcular
+                # las medias cortas; las que no llegan quedan a null.
+                if len(velas.closes) < min(PERIODOS) + 1:
                     raise providers.DataError(
-                        f"solo {len(velas.closes)} velas, se necesitan {max(PERIODOS)}"
+                        f"solo {len(velas.closes)} velas, se necesitan {min(PERIODOS) + 1}"
                     )
                 resultados.append(analizar(valor, velas, timeframe))
             except Exception as exc:  # un valor caido no debe tumbar el escaneo
@@ -145,6 +177,7 @@ def escanear(valores: List[Valor], timeframe: str, *, workers: int = 6) -> dict:
     sesiones = [r["session"] for r in resultados]
     sesion = max(set(sesiones), key=sesiones.count) if sesiones else None
 
+    fuentes = sorted({r["source"] for r in resultados})
     return {
         "timeframe": timeframe,
         "label": TIMEFRAMES[timeframe]["label"],
@@ -153,6 +186,9 @@ def escanear(valores: List[Valor], timeframe: str, *, workers: int = 6) -> dict:
         "periods": list(PERIODOS),
         "count": len(resultados),
         "withCrosses": sum(1 for r in resultados if r["crosses"]),
+        # Los respaldos solo dan unas 50 sesiones: sin historico para la media de 200.
+        "missing200": sum(1 for r in resultados if r["sma"]["200"] is None),
+        "sources": fuentes,
         "results": resultados,
         "errors": errores,
     }
@@ -182,6 +218,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                         help="lista separada por comas: 15m,60m,1d")
     parser.add_argument("--salida", default="docs/data", help="directorio donde escribir el JSON")
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--historico", default=None,
+                        help="directorio donde acumular los cierres diarios (CSV por valor)")
     parser.add_argument("--resumen", action="store_true", help="imprime el resultado por consola")
     args = parser.parse_args(argv)
 
@@ -201,7 +239,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     for timeframe in timeframes:
         print(f"[scan] {timeframe}: {len(valores)} valores...", file=sys.stderr)
-        datos = escanear(valores, timeframe, workers=args.workers)
+        datos = escanear(valores, timeframe, workers=args.workers,
+                         historico_dir=args.historico)
         ruta = os.path.join(args.salida, f"{timeframe}.json")
         with open(ruta, "w", encoding="utf-8") as fh:
             json.dump(datos, fh, ensure_ascii=False, separators=(",", ":"))

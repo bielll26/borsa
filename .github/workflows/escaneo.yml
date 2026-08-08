@@ -1,9 +1,12 @@
-name: Escaneo de cruces y publicación
+name: Escaneo diario y publicación
 
+# El panel calcula el intradía en el navegador de quien lo abre (Yahoo responde
+# 429 a las IP de los centros de datos, incluidas las de GitHub). Aquí solo se
+# escanea el cierre diario desde la fuente de respaldo, se acumula en el
+# histórico del repositorio y se publica el panel.
 on:
-  # Cada 15 minutos durante el horario de la bolsa española (cubre CET y CEST).
   schedule:
-    - cron: "*/15 6-17 * * 1-5"
+    - cron: "30 17 * * 1-5" # ~19:30 en Madrid, con la sesión ya cerrada
   workflow_dispatch:
   push:
     branches:
@@ -11,11 +14,10 @@ on:
       - claude/moving-average-crossover-app-9vuqjc
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
-# Un solo despliegue a la vez; si llega otro escaneo, el anterior se descarta.
 concurrency:
   group: pages
   cancel-in-progress: true
@@ -33,8 +35,10 @@ jobs:
       - name: Pruebas
         run: python -m unittest discover -s tests -t .
 
-      - name: Escanear el mercado
-        run: python -m scanner.scan --universo todos --timeframes 15m,60m,1d --salida docs/data --resumen
+      - name: Escanear el cierre diario
+        run: |
+          python -m scanner.scan --universo todos --timeframes 1d \
+            --salida docs/data --historico datos/historico --resumen
 
       - name: Resumen del escaneo
         run: |
@@ -46,7 +50,27 @@ jobs:
           print("|---|---|---:|---:|---:|")
           for tf in indice["timeframes"]:
               print(f"| {tf['label']} | {tf['session']} | {tf['withCrosses']} | {tf['count']} | {tf['errors']} |")
+          historico = sorted(pathlib.Path("datos/historico").glob("*.csv"))
+          if historico:
+              sesiones = [sum(1 for _ in f.open()) - 1 for f in historico]
+              print(f"\nHistórico acumulado: {len(historico)} valores · "
+                    f"{min(sesiones)}–{max(sesiones)} sesiones por valor "
+                    f"(hacen falta 51 para la media de 50 y 201 para la de 200).")
           PY
+
+      # El histórico crece con cada escaneo: es lo que permite que el panel
+      # publicado acabe detectando también los cruces de 50 y 200.
+      - name: Guardar el histórico acumulado
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add datos/historico
+          if git diff --cached --quiet; then
+            echo "El histórico no ha cambiado."
+          else
+            git commit -m "Histórico diario $(date -u +%Y-%m-%d)"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
 
       # enablement activa GitHub Pages la primera vez sin tocar los ajustes a mano.
       - uses: actions/configure-pages@v5

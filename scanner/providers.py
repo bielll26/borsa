@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import calendar
 import csv
+import html.parser
 import io
 import json
 import random
@@ -91,6 +92,93 @@ def _parse_yahoo(payload: dict, symbol: str) -> Velas:
     if not cierres:
         raise DataError(f"{symbol}: sin cierres validos")
     return Velas(ts_limpios, cierres, "yahoo")
+
+
+_MESES = {m: i for i, m in enumerate(
+    "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), start=1)}
+
+
+class _TablaHistorico(html.parser.HTMLParser):
+    """Extrae la primera tabla con cabecera Date/Open/High/Low/Close."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.filas: List[List[str]] = []
+        self._fila: Optional[List[str]] = None
+        self._celda: Optional[List[str]] = None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "tr":
+            self._fila = []
+        elif tag in ("td", "th") and self._fila is not None:
+            self._celda = []
+
+    def handle_data(self, data):
+        if self._celda is not None:
+            self._celda.append(data.strip())
+
+    def handle_endtag(self, tag):
+        if tag in ("td", "th") and self._celda is not None:
+            self._fila.append(" ".join(t for t in self._celda if t))
+            self._celda = None
+        elif tag == "tr" and self._fila:
+            self.filas.append(self._fila)
+            self._fila = None
+
+
+def stockanalysis_diario(symbol: str, *, timeout: float = 25.0) -> Velas:
+    """Cierres diarios de stockanalysis.com.
+
+    Es la fuente de respaldo cuando Yahoo rechaza la peticion (los centros de
+    datos reciben 429). Devuelve alrededor de 50 sesiones, suficientes para las
+    medias de 7 y 50 pero no para la de 200.
+    """
+    base = symbol.split(".")[0].upper()
+    url = f"https://stockanalysis.com/quote/bme/{urllib.parse.quote(base)}/history/"
+    try:
+        html_crudo = _get(url, timeout).decode("utf-8", "replace")
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise DataError(f"{symbol}: stockanalysis {exc}") from exc
+
+    parser = _TablaHistorico()
+    parser.feed(html_crudo)
+
+    cabecera_vista = False
+    filas: List[tuple] = []
+    for fila in parser.filas:
+        if not cabecera_vista:
+            cabecera_vista = fila[:2] == ["Date", "Open"]
+            continue
+        if len(fila) < 5:
+            continue
+        fecha, cierre = _fecha_en(fila[0]), _decimal(fila[4])
+        if fecha is None or cierre is None:
+            continue
+        filas.append((fecha, cierre))
+
+    if not filas:
+        raise DataError(f"{symbol}: stockanalysis sin filas de cotizacion")
+
+    filas.sort()  # la web las lista de mas reciente a mas antigua
+    return Velas([f for f, _ in filas], [c for _, c in filas], "stockanalysis")
+
+
+def _fecha_en(texto: str) -> Optional[int]:
+    """Convierte 'Aug 7, 2026' en epoch a las 12:00 UTC de esa sesion."""
+    partes = texto.replace(",", " ").split()
+    if len(partes) != 3 or partes[0] not in _MESES:
+        return None
+    try:
+        return calendar.timegm((int(partes[2]), _MESES[partes[0]], int(partes[1]), 12, 0, 0, 0, 0, 0))
+    except ValueError:
+        return None
+
+
+def _decimal(texto: str) -> Optional[float]:
+    try:
+        return float(texto.replace(",", ""))
+    except ValueError:
+        return None
 
 
 def stooq_diario(symbol: str, *, timeout: float = 20.0) -> Velas:
