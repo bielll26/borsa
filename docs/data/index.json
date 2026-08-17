@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T20:26:32+02:00",
+  "generatedAt": "2026-08-17T19:56:31+02:00",
   "universe": "todos",
   "periods": [
     7,
@@ -11,10 +11,10 @@
       "id": "1d",
       "label": "Diario",
       "file": "1d.json",
-      "session": "2026-08-14",
-      "generatedAt": "2026-08-14T20:27:38+02:00",
+      "session": "2026-08-17",
+      "generatedAt": "2026-08-17T19:57:37+02:00",
       "count": 80,
-      "withCrosses": 1,
+      "withCrosses": 2,
       "errors": 5
     }
   ]
