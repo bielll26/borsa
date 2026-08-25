@@ -1,0 +1,64 @@
+# 10X Content Expert - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# ==========================================
+# CORE DEPENDENCIES
+# ==========================================
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# CLI formatting
+rich>=13.0.0
+
+# ==========================================
+# LOCAL FILE EDITING DEPENDENCIES
+# ==========================================
+
+# PDF manipulation
+PyPDF2>=3.0.0
+pdfplumber>=0.9.0
+reportlab>=4.0.0
+pdf2docx>=0.5.6
+
+# PowerPoint manipulation
+python-pptx>=0.6.21
+
+# Word document manipulation
+python-docx>=0.8.11
+
+# Excel manipulation
+openpyxl>=3.1.0
+pandas>=2.0.0
+
+# Image processing
+Pillow>=9.0.0
+
+# ==========================================
+# OPTIONAL DEPENDENCIES
+# ==========================================
+
+# For better JSON handling
+orjson>=3.8.0
+
+# For Markdown processing
+markdown>=3.4.0
+
+# ==========================================
+# WHISPER TRANSCRIPTION (Optional - ~2GB)
+# ==========================================
+# Install separately: pip install openai-whisper torch
+# These are large dependencies and marked optional
+# openai-whisper>=20231117
+# ffmpeg-python>=0.2.0
+# torch>=2.0.0
+
+# HTTP requests (for web research and Canva API)
+requests>=2.28.0
+
+# ==========================================
+# CANVA API DEPENDENCIES
+# ==========================================
+
+# Flask for OAuth callback server
+flask>=2.3.0
