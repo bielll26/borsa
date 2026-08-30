@@ -1,5 +1,5 @@
 # Prompt maestro — Hero, sistema de color y sistema tipográfico
-**Web de marca personal · one-page · dark-first · bilingüe ES/EN**
+**Web de marca personal · one-page · dark-first · en español**
 
 Referencias de dirección: **samu-webart.com** (estructura general, escala tipográfica, ritmo de
 página) y **southprojects.dev** (paleta, flujo de briefing en 9 pasos, agenda con Cal.com).
@@ -22,7 +22,7 @@ página) y **southprojects.dev** (paleta, flujo de briefing en 9 pasos, agenda c
 5. [Barra superior (header)](#5-barra-superior-header)
 6. [El hero](#6-el-hero)
 7. [Componentes: botones](#7-componentes-botones)
-8. [Copy ES/EN e i18n](#8-copy-esen-e-i18n)
+8. [Copy](#8-copy)
 9. [Movimiento y animación](#9-movimiento-y-animación)
 10. [Accesibilidad](#10-accesibilidad)
 11. [Rendimiento](#11-rendimiento)
@@ -61,8 +61,9 @@ desarrollo. Si el hero parece genérico, el resto de la web ya no importa.
 - Sin librerías de UI (Bootstrap, MUI, shadcn) ni de animación pesadas. GSAP se admite **solo** si
   la cascada de entrada del H1 lo justifica; si CSS lo resuelve, CSS gana.
 - Sin imágenes decorativas en el hero. El impacto lo da la tipografía y el vacío.
-- Todo el texto visible sale de un diccionario de copys ES/EN. Cero strings incrustados en el
-  marcado.
+- **Una sola lengua: español.** No hay conmutador de idioma ni versión en inglés. El texto puede
+  ir directo en el marcado; si prefieres centralizarlo en un objeto de copys, hazlo por comodidad de
+  edición, no por i18n.
 
 ---
 
@@ -120,7 +121,7 @@ Esta es la capa que consume el CSS de los componentes.
 | `--border` | `--black-700` | Hairline por defecto (1px) |
 | `--border-strong` | `--black-600` | Borde en hover de elementos interactivos |
 | `--fg` | `--cream-100` | Texto principal, H1, wordmark |
-| `--fg-muted` | `--grey-400` | Subtítulo del hero, descripciones, idioma inactivo |
+| `--fg-muted` | `--grey-400` | Subtítulo del hero, descripciones, texto secundario |
 | `--fg-faint` | `--grey-600` | Metadatos, contadores, placeholders |
 | `--accent` | `--amber-500` | CTA activo, contador de pasos, barra de progreso, foco |
 | `--accent-hover` | `--amber-400` | Hover sobre superficie ámbar |
@@ -136,8 +137,8 @@ Esta es la capa que consume el CSS de los componentes.
 1. **Blanco puro prohibido.** `#FFFFFF` produce halo sobre negro puro y rompe la calidez de la
    paleta. Todo texto claro usa `--fg`.
 2. **Presupuesto de acento: 3 elementos como máximo en el hero.** En la composición por defecto son:
-   (a) el glifo de firma junto al wordmark, (b) el idioma activo en el conmutador, (c) la barra de
-   progreso inferior. Si se quiere teñir una palabra del H1 en ámbar, hay que **retirar** uno de los
+   (a) la barra de progreso inferior, (b) el contador de pasos del cuestionario y (c) el estado
+   "listo" del botón primario. Si se quiere teñir una palabra del H1 en ámbar, hay que **retirar** uno de los
    tres anteriores. El CTA primario en reposo es crema, no ámbar.
 3. **Sin degradados de marca, sin glassmorphism, sin sombras de color, sin `box-shadow` difusas.**
    La profundidad se consigue con espaciado, contraste tipográfico y hairlines.
@@ -280,7 +281,7 @@ Réplica estructural de la barra de las capturas de South Projects, adaptada a m
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│  WORDMARK ✳            ES / EN            [ Contacto → ]      │
+│  ✳ WORDMARK                             [ Contacto → ]       │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -296,11 +297,8 @@ Réplica estructural de la barra de las capturas de South Projects, adaptada a m
    caja), separación `--space-3` (12px). Todo el bloque es un único enlace a `/` con
    `aria-label` = nombre + " — inicio", y la mascota lleva `aria-hidden="true"` para no duplicar la
    lectura.
-2. **Conmutador de idioma (centro-derecha).** `ES / EN`. Activo en `--accent` con peso 600; inactivo
-   en `--fg-faint` con peso 500; el separador `/` en `--fg-faint`. Área táctil mínima 44×44px por
-   opción aunque el texto sea pequeño (usa padding, no `font-size`).
-   Implementado como `<div role="group">` con dos `<button aria-pressed>`.
-   Persiste en `localStorage` bajo la clave `lang`, y actualiza `document.documentElement.lang`.
+2. **Centro: vacío.** No hay navegación ni conmutador de idioma. El header es solo marca a la
+   izquierda y acción a la derecha; el espacio intermedio se deja libre a propósito.
 3. **Botón de contacto (derecha).** Botón secundario **en variante crema sólida** (fondo `--fg`,
    texto `--on-cream`), `--fs-ui`, `padding: 12px 20px`, `border-radius: 2px`. En las capturas es el
    "Go back" con flecha; aquí lleva una flecha `→` inline a la derecha del texto (SVG, `currentColor`,
@@ -406,9 +404,8 @@ referencia para la vectorización.
 - **Viewport muy bajo (< 600px de alto, p. ej. móvil en horizontal):** reduce el espacio negativo
   superior a `6vh`, baja `--fs-display` un escalón con una media query de `(max-height: 600px)`,
   y permite que el hero use `min-block-size: auto`.
-- **Textos largos en EN vs ES:** el copy en español suele ser ~15–20% más largo. La composición del
-  H1 debe estar comprobada **en ambos idiomas**, con saltos de línea propios por idioma en el
-  diccionario de copys (§8).
+- **Copy largo:** el español es una lengua larga. Comprueba la composición del H1 con el copy
+  definitivo, no con el placeholder, y ajusta los saltos de línea a mano (§8).
 - **Fallo de carga de fuentes:** con el fallback ajustado por `size-adjust` el layout no debe saltar.
   Comprueba con las fuentes bloqueadas en DevTools.
 - **JS deshabilitado:** el hero se ve completo y los CTAs siguen siendo utilizables — el primario
@@ -450,24 +447,20 @@ referencia para la vectorización.
 
 ---
 
-## 8. Copy ES/EN e i18n
+## 8. Copy
 
 ### 8.1 Mecánica
 
-- Diccionario en `src/i18n/copy.js` (u `copy.json`), estructura
-  `{ es: { … }, en: { … } }` con claves por slot: `hero.eyebrow`, `hero.h1.lines` (array de
-  strings, una por línea), `hero.lead`, `cta.primary`, `cta.secondary`, `hero.note`,
-  `header.contact`, `hero.availability`.
-- El H1 se recibe como **array de líneas** para que cada idioma controle sus propios saltos.
-- Idioma por defecto: se toma de `localStorage.lang`; si no existe, de `navigator.language`
-  (prefijo `es` → español, cualquier otro → inglés); si tampoco, `es`.
-- Al cambiar de idioma: actualizar `document.documentElement.lang`, re-renderizar los slots,
-  persistir en `localStorage`, y **no** recargar la página ni perder la posición de scroll.
-- Anuncia el cambio a lectores de pantalla con una región `aria-live="polite"` discreta.
+- **La web es solo en español.** No hay conmutador de idioma, ni versión en inglés, ni capa de i18n.
+  `<html lang="es">` fijo.
+- El texto puede escribirse directamente en el marcado. Si aun así prefieres centralizarlo, usa un
+  objeto plano en `src/copy.js` con claves por slot (`hero.eyebrow`, `hero.h1.lines`, `hero.lead`,
+  `cta.primary`, `cta.secondary`, `hero.note`, `header.contact`) — pero es una comodidad de edición,
+  no un requisito.
+- El H1 se define como **array de líneas** para controlar los saltos a mano; ese es el único motivo
+  para no escribirlo como un string suelto.
 
 ### 8.2 Copy de referencia (sustituir por el definitivo, no publicar tal cual)
-
-**ES**
 
 - Eyebrow: `DISEÑO Y DESARROLLO WEB · BARCELONA`
 - H1 (3 líneas): `WEBS QUE` / `NO PARECEN` / `PLANTILLAS`
@@ -477,17 +470,6 @@ referencia para la vectorización.
 - Nota: `Respuesta en menos de 24 h · Sin compromiso`
 - Header contacto: `Contacto`
 - Disponibilidad: `DISPONIBLE PARA PROYECTOS · Q4 2026`
-
-**EN**
-
-- Eyebrow: `WEB DESIGN & DEVELOPMENT · BARCELONA`
-- H1 (3 líneas): `WEBSITES` / `THAT DON'T` / `LOOK LIKE TEMPLATES`
-- Lead: `I design and build custom websites for brands and professionals who need to stand out. From idea to deploy.`
-- CTA primario: `Start a project`
-- CTA secundario: `Book a call`
-- Nota: `Reply within 24h · No strings attached`
-- Header contacto: `Contact`
-- Disponibilidad: `AVAILABLE FOR PROJECTS · Q4 2026`
 
 > Este copy es **placeholder de estructura**, elegido para validar longitudes y saltos de línea.
 > Debe sustituirse por el copy real antes de publicar; no lo tomes como el mensaje definitivo de la
@@ -525,7 +507,6 @@ Cascada única, ejecutada una sola vez por sesión (`sessionStorage` para no rep
 - **Barra de progreso:** `transform: scaleX()` con `transform-origin: left`, actualizada en `rAF`
   con el valor `scrollY / (scrollHeight - innerHeight)`, redondeado a 3 decimales.
 - **Header con scroll:** `240ms ease-out`.
-- **Conmutador de idioma:** cambio de color en `160ms`, sin animación de layout.
 
 ### 9.3 `prefers-reduced-motion: reduce`
 
@@ -550,19 +531,16 @@ Nivel objetivo: **WCAG 2.2 AA**, verificado, no asumido.
 3. **CTAs que abren overlays son `<button type="button">`**, nunca `<a href="#">`. Si además existe
    una URL real de fallback, usa `<a>` con `role` intacto y previene el default con JS.
 4. **Foco:** visible siempre (`:focus-visible`), nunca `outline: none` sin sustituto. Orden de
-   tabulación natural: wordmark → idioma ES → idioma EN → contacto → CTA primario → CTA secundario.
+   tabulación natural: wordmark → contacto → CTA primario → CTA secundario.
 5. **Skip link** como primer elemento focusable: "Saltar al contenido", oculto visualmente hasta
    recibir foco, y entonces mostrado sobre el header con fondo `--accent`.
-6. **Conmutador de idioma:** `<div role="group" aria-label="Idioma">` con dos botones y
-   `aria-pressed="true|false"`. Cada botón lleva `lang` correspondiente y un `aria-label` completo
-   ("Español", "English"), no solo las siglas.
-7. **Áreas táctiles ≥ 44×44px** (WCAG 2.2 §2.5.8), incluido el conmutador de idioma.
-8. **Sin trampas de foco**; sin `tabindex` positivos.
-9. **Contraste verificado** con herramienta, no a ojo, para las 5 combinaciones del §2.3 punto 4.
-10. **Zoom al 200% y `text-spacing`**: el hero no debe cortar contenido ni provocar scroll
+6. **Áreas táctiles ≥ 44×44px** (WCAG 2.2 §2.5.8) en todo elemento interactivo.
+7. **Sin trampas de foco**; sin `tabindex` positivos.
+8. **Contraste verificado** con herramienta, no a ojo, para las 5 combinaciones del §2.3 punto 4.
+9. **Zoom al 200% y `text-spacing`**: el hero no debe cortar contenido ni provocar scroll
     horizontal. Prueba con el bookmarklet de text-spacing de WCAG.
-11. **`prefers-reduced-motion`** implementado (§9.3).
-12. **Título de página y `lang`** correctos y actualizados al cambiar de idioma.
+10. **`prefers-reduced-motion`** implementado (§9.3).
+11. **`<html lang="es">`** y `<title>` correctos y descriptivos.
 
 ---
 
@@ -611,8 +589,8 @@ siguiente no tenga que tocar el hero.
 Tomado literalmente de las capturas de South Projects:
 
 - Overlay a pantalla completa sobre `--bg`, con el **mismo header** (logo + wordmark, conmutador
-  ES/EN y, en lugar del CTA de contacto, un botón crema **"← Volver" / "Go back"** con flecha a la
-  izquierda que cierra el cuestionario).
+  y, en lugar del CTA de contacto, un botón crema **"← Volver"** con flecha a la izquierda que
+  cierra el cuestionario).
 - **Contador `n / 9`** centrado sobre el titular: el número actual en `--accent`, la barra `/` y el
   total en `--fg-faint`, `--fs-counter`, con `font-variant-numeric: tabular-nums`.
 - **Titular de la pregunta** en tipografía **display**, mayúsculas, centrado,
@@ -643,29 +621,27 @@ Tomado literalmente de las capturas de South Projects:
 
 #### 12.1.2 Los 9 pasos
 
-| # | Pregunta (ES) | Pregunta (EN) | Tipo de campo | Validación |
-|---|---|---|---|---|
-| 1 | ¿CÓMO TE LLAMAS? | WHAT'S YOUR NAME? | Texto de una línea | Obligatorio, ≥ 2 caracteres |
-| 2 | ¿DE DÓNDE ERES? | WHERE ARE YOU FROM? | Texto de una línea | Obligatorio |
-| 3 | ¿CUÁL ES TU NÚMERO DE WHATSAPP? | WHAT'S YOUR WHATSAPP NUMBER? | Selector de país + campo numérico | Obligatorio, formato válido |
-| 4 | NOMBRE DE TU MARCA | NAME OF YOUR BRAND | Texto de una línea | Obligatorio |
-| 5 | CUÉNTANOS MÁS SOBRE TU MARCA | TELL US MORE ABOUT YOUR BRAND | Textarea autoexpansible | Obligatorio, ≥ 20 caracteres |
-| 6 | WEB ACTUAL O INSTAGRAM | CURRENT WEBSITE OR INSTAGRAM | Texto de una línea (`inputmode="url"`) | **Opcional** |
-| 7 | ¿QUÉ SERVICIO TE INTERESA? | WHAT SERVICE ARE YOU INTERESTED IN? | Lista de opciones múltiples (checkboxes) | Obligatorio, ≥ 1 opción |
-| 8 | TU PRESUPUESTO | YOUR BUDGET | Desplegable (`<select>`) | Obligatorio |
-| 9 | AGENDA TU VIDEOLLAMADA | BOOK YOUR VIDEO CALL | **Embed de Cal.com** (§12.2) | — (paso final) |
+| # | Pregunta | Tipo de campo | Validación |
+|---|---|---|---|
+| 1 | ¿CÓMO TE LLAMAS? | Texto de una línea | Obligatorio, ≥ 2 caracteres |
+| 2 | ¿DE DÓNDE ERES? | Texto de una línea | Obligatorio |
+| 3 | ¿CUÁL ES TU NÚMERO DE WHATSAPP? | Selector de país + campo numérico | Obligatorio, formato válido |
+| 4 | NOMBRE DE TU MARCA | Texto de una línea | Obligatorio |
+| 5 | CUÉNTANOS MÁS SOBRE TU MARCA | Textarea autoexpansible | Obligatorio, ≥ 20 caracteres |
+| 6 | WEB ACTUAL O INSTAGRAM | Texto de una línea (`inputmode="url"`) | **Opcional** |
+| 7 | ¿QUÉ SERVICIO TE INTERESA? | Lista de opciones múltiples (checkboxes) | Obligatorio, ≥ 1 opción |
+| 8 | TU PRESUPUESTO | Desplegable (`<select>`) | Obligatorio |
+| 9 | AGENDA TU VIDEOLLAMADA | **Embed de Cal.com** (§12.2) | — (paso final) |
 
 **Detalle por paso:**
 
-- **Paso 3 — WhatsApp.** Ayuda: "Elige tu país y escribe el número sin el prefijo." /
-  "Pick your country, then type the number without the country code."
+- **Paso 3 — WhatsApp.** Ayuda: "Elige tu país y escribe el número sin el prefijo."
   Dos controles apilados: un `<select>` de país que muestra **bandera + nombre + prefijo**
   (`🇪🇸 España +34`) con hairline inferior propia y chevron `▾` a la derecha en `--fg-muted`; debajo,
   el campo numérico con `inputmode="tel"` y placeholder de ejemplo local (`600 00 00 00`).
-  País por defecto deducido del idioma/locale del navegador. Se guarda el E.164 completo.
+  País por defecto: España (+34). Se guarda el número en formato E.164 completo.
 - **Paso 5 — Descripción.** Ayuda: "¿En qué sector estás? ¿Cuál es tu producto o servicio? ¿Qué
-  quieres conseguir con él?" / "What industry are you in? What's your product or service? What do
-  you want to achieve with it?" Textarea que **crece con el contenido** (sin scroll interno hasta un
+  quieres conseguir con él?" Textarea que **crece con el contenido** (sin scroll interno hasta un
   máximo de 8 líneas), misma hairline inferior, contador de caracteres discreto en `--fg-faint` solo
   a partir de los 200 caracteres.
 - **Paso 6 — Web o Instagram.** Único paso **opcional**: el `Siguiente` ya está en ámbar desde el
@@ -680,20 +656,16 @@ Tomado literalmente de las capturas de South Projects:
   `✓` en `--on-accent`. Toda la fila es clicable (`<label>` envolviendo el `<input type="checkbox">`).
   Opciones: `Diseño + Desarrollo Web` · `Landing Page` · `Rediseño de Web` · `E-commerce` ·
   `Branding` · `Otro`.
-  (EN: `Web Design + Development` · `Landing Page` · `Website Redesign` · `E-commerce` ·
-  `Branding` · `Other`.)
-  Si se marca **Otro / Other**, aparece debajo un campo de texto libre con la misma hairline.
+  Si se marca **Otro**, aparece debajo un campo de texto libre con la misma hairline.
 - **Paso 8 — Presupuesto.** Un `<select>` nativo con la hairline inferior y el chevron `▾`, cuyo
-  estado vacío muestra `Elige una opción…` / `Choose an option…` en `--fg-faint`.
+  estado vacío muestra `Elige una opción…` en `--fg-faint`.
   Se usa el `<select>` **nativo** a propósito: en móvil abre la rueda del sistema (como en la
   captura) y es accesible sin código extra. Estilar solo el disparador; el desplegable lo pinta el
   sistema.
-  Opciones: `Menos de 750 USD` · `750 – 1.500 USD` · `1.500 – 3.000 USD` · `3.000 – 5.000 USD` ·
-  `5.000+ USD`.
-  (EN: `Less than USD $750` · `USD $750 – $1,500` · `USD $1,500 – $3,000` · `USD $3,000 – $5,000` ·
-  `USD $5,000+`.)
-  Moneda: USD por defecto; si se decide localizar a EUR, se cambia en el diccionario de copys, no en
-  el código.
+  Opciones: `Menos de 750 €` · `750 – 1.500 €` · `1.500 – 3.000 €` · `3.000 – 5.000 €` ·
+  `5.000+ €`.
+  Moneda: **euros**. La referencia usaba USD, pero siendo una web solo en español EUR es lo
+  coherente; si prefieres USD, se cambia solo el copy.
 - **Paso 9 — Agendar la videollamada.** Es la **pantalla final** del cuestionario y sustituye a
   cualquier "pantalla de gracias" estática. Ver §12.2.
 
@@ -720,9 +692,10 @@ de modo que reservar la videollamada es el cierre natural del briefing.
 
 **Requisitos comunes:**
 
-- Titular del paso: `AGENDA TU VIDEOLLAMADA` / `BOOK YOUR VIDEO CALL`, en display, con ayuda
-  debajo: "Elige el día y la hora que mejor te vaya. Te llega la invitación al momento." /
-  "Pick the day and time that suits you. You'll get the invite right away."
+- Titular del paso: `AGENDA TU VIDEOLLAMADA`, en display, con ayuda debajo: "Elige el día y la
+  hora que mejor te vaya. Te llega la invitación al momento."
+- **Idioma del embed:** configura Cal.com con `locale: "es"` para que el calendario y sus textos no
+  salgan en inglés.
 - **Carga perezosa obligatoria:** el script `embed.js` de Cal.com se inyecta **en el primer clic**
   (caso A) o **al entrar en el paso 9** (caso B). Jamás en el `<head>` ni en el primer render (§11).
 - **Tema oscuro y tokens de marca:**
@@ -752,7 +725,7 @@ de modo que reservar la videollamada es el cierre natural del briefing.
   proveedor que se configure en Cal.com. La confirmación y el recordatorio los envía Cal.com; la web
   no manda correos.
 - **Después de reservar:** escuchar el evento `bookingSuccessful` del embed y mostrar una pantalla de
-  cierre propia: titular display `NOS VEMOS PRONTO` / `SEE YOU SOON`, resumen de día y hora, y un
+  cierre propia: titular display `NOS VEMOS PRONTO`, resumen de día y hora, y un
   botón secundario para volver al inicio. Limpiar entonces el `sessionStorage` del briefing.
 - **Fallback sin JS o si el embed falla:** un enlace directo `https://cal.com/<usuario>/<evento>`
   visible siempre bajo el calendario ("¿No ves el calendario? Reserva aquí"), con
@@ -768,11 +741,10 @@ de modo que reservar la videollamada es el cierre natural del briefing.
 // src/main.js
 export function openBriefing(): void   // stub en fase 1
 export function openCalendar(): void   // stub en fase 1
-export function setLanguage(lang: 'es' | 'en'): void
 ```
 
-Y en el marcado, los atributos `data-action="briefing"`, `data-action="calendar"`,
-`data-i18n="<clave>"` como puntos de anclaje estables. **No los renombres en fases posteriores.**
+Y en el marcado, los atributos `data-action="briefing"` y `data-action="calendar"` como puntos de
+anclaje estables. **No los renombres en fases posteriores.**
 
 ---
 
@@ -788,7 +760,6 @@ Y en el marcado, los atributos `data-action="briefing"`, `data-action="calendar"
 │  │  └─ hero.css           → header + hero + botones
 │  ├─ js/
 │  │  ├─ main.js            → bootstrap, stubs openBriefing/openCalendar
-│  │  ├─ i18n.js            → diccionario + setLanguage + render de slots
 │  │  ├─ progress.js        → barra de progreso con rAF
 │  │  └─ reveal.js          → cascada de entrada
 │  └─ fonts/                → .woff2 autoalojados (opcional pero recomendado)
@@ -798,11 +769,11 @@ Y en el marcado, los atributos `data-action="briefing"`, `data-action="calendar"
 
 **Entregables de esta fase:**
 
-1. `index.html` con header y hero completos, funcionando en ES y EN.
+1. `index.html` con header y hero completos, en español.
 2. `tokens.css` con **todos** los tokens de §2, §3 y §4 declarados en `:root`. Ninguna literal de
    color, tamaño de fuente o espaciado suelta en el resto del CSS — si aparece una, es un bug.
-3. JS mínimo: conmutador de idioma, estado de scroll del header, barra de progreso, cascada de
-   entrada y los dos stubs de §12.3.
+3. JS mínimo: estado de scroll del header, barra de progreso, cascada de entrada y los dos stubs
+   de §12.3.
 4. README breve indicando cómo cambiar el copy, cómo cambiar la familia display y dónde se conectará
    Cal.com.
 5. **Nada más.** Sin "sobre mí", sin proyectos, sin testimonios, sin footer todavía.
@@ -813,7 +784,7 @@ Y en el marcado, los atributos `data-action="briefing"`, `data-action="calendar"
 
 **Visual**
 
-- [ ] El H1 rompe en 3–4 líneas en móvil y 2–3 en desktop, en **ambos idiomas**, sin huérfanas.
+- [ ] El H1 rompe en 3–4 líneas en móvil y 2–3 en desktop, sin palabras huérfanas.
 - [ ] Más del 55% del viewport del hero es negro vacío.
 - [ ] El acento ámbar aparece en 3 elementos como máximo.
 - [ ] No hay ni un `#FFFFFF` en todo el CSS.
@@ -837,7 +808,6 @@ Y en el marcado, los atributos `data-action="briefing"`, `data-action="calendar"
 
 **Funcional**
 
-- [ ] El conmutador ES/EN cambia todos los textos, actualiza `<html lang>` y persiste al recargar.
 - [ ] El header cambia de estado al pasar de 24px de scroll y vuelve al reposo al subir.
 - [ ] La barra de progreso llega exactamente al 100% al final de la página.
 - [ ] Los dos CTAs disparan sus stubs y, con JS deshabilitado, tienen fallback usable.
@@ -974,24 +944,18 @@ body{
   <a class="header__brand" href="/" aria-label="Nombre — inicio">
     <svg class="brand__mascot" width="32" height="32" viewBox="0 0 64 64"
          fill="currentColor" aria-hidden="true" focusable="false">…</svg>
-    <span class="wordmark" data-i18n="brand.name">NOMBRE</span>
+    <span class="wordmark">NOMBRE</span>
   </a>
 
-  <div class="langswitch" role="group" aria-label="Idioma">
-    <button type="button" lang="es" aria-pressed="true"  data-lang="es">ES</button>
-    <span aria-hidden="true">/</span>
-    <button type="button" lang="en" aria-pressed="false" data-lang="en">EN</button>
-  </div>
-
   <button type="button" class="btn btn--primary header__cta" data-action="calendar">
-    <span data-i18n="header.contact">Contacto</span>
+    <span>Contacto</span>
     <svg width="16" height="16" aria-hidden="true" focusable="false">…</svg>
   </button>
 </header>
 
 <main>
   <section class="hero" aria-labelledby="hero-title">
-    <p class="hero__eyebrow" data-i18n="hero.eyebrow"></p>
+    <p class="hero__eyebrow">DISEÑO Y DESARROLLO WEB · BARCELONA</p>
 
     <h1 class="hero__title" id="hero-title">
       <span class="hero__line"><span>WEBS QUE</span></span>
@@ -999,14 +963,14 @@ body{
       <span class="hero__line"><span>PLANTILLAS</span></span>
     </h1>
 
-    <p class="hero__lead" data-i18n="hero.lead"></p>
+    <p class="hero__lead">Diseño y construyo webs a medida para marcas y profesionales que necesitan destacar.</p>
 
     <div class="hero__actions">
-      <button type="button" class="btn btn--primary"   data-action="briefing" data-i18n="cta.primary"></button>
-      <button type="button" class="btn btn--secondary" data-action="calendar" data-i18n="cta.secondary"></button>
+      <button type="button" class="btn btn--primary"   data-action="briefing">Empezar un proyecto</button>
+      <button type="button" class="btn btn--secondary" data-action="calendar">Agendar una llamada</button>
     </div>
 
-    <p class="hero__note" data-i18n="hero.note"></p>
+    <p class="hero__note">Respuesta en menos de 24 h · Sin compromiso</p>
   </section>
 </main>
 
@@ -1070,7 +1034,7 @@ Confirmar con el cliente antes de cerrar la fase:
 1. **Nombre de marca y wordmark exacto** que acompaña a la mascota, y quién entrega el **SVG
    vectorizado** del logo (o si se vectoriza a partir del JPG facilitado).
 2. **Familia display definitiva**: Anton (por defecto), Archivo Black o Bebas Neue.
-3. **Copy real** del eyebrow, H1, lead y nota, en ES y EN, con sus saltos de línea.
+3. **Copy real** del eyebrow, H1, lead y nota, con sus saltos de línea.
 4. **Usuario y slug del evento de Cal.com** (`cal.com/<usuario>/<evento>`).
 5. **Duración del tipo de evento de Cal.com** (30 min por defecto) y proveedor de videollamada.
    Los 9 pasos del cuestionario ya están cerrados en §12.1.2.
