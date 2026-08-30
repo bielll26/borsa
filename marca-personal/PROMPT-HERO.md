@@ -284,12 +284,18 @@ Réplica estructural de la barra de las capturas de South Projects, adaptada a m
 └──────────────────────────────────────────────────────────────┘
 ```
 
-1. **Wordmark (izquierda).** El nombre de marca en tipografía **display**, mayúsculas, `--fs-ui`
-   escalado a `clamp(1.125rem, 2.4vw, 1.5rem)`, color `--fg`, `letter-spacing: -0.01em`.
-   Inmediatamente a su derecha, un **glifo de firma en `--accent`** de 14–18px (equivalente al sol
-   de South Projects): un asterisco, un punto, un sol simplificado o un `✳`. Es SVG inline, no
-   emoji, no imagen. Separación wordmark↔glifo: `--space-2`.
-   Enlaza a `/` con `aria-label` = nombre + "— inicio".
+1. **Logotipo + wordmark (izquierda).** Bloque de dos piezas:
+   - **Mascota (marca gráfica).** El logo facilitado: una **cara de personaje estilo cómic/manga,
+     monocroma en blanco sobre negro**, con contorno grueso, flequillo puntiagudo, cejas marcadas,
+     gafas de sol redondeadas y boca pequeña. Es la firma visual de la marca y **sustituye al glifo
+     ámbar** que se describía antes (ver §5.3 para su tratamiento completo).
+     Tamaño en el header: **28px de alto** en móvil, **32px** en ≥1024px, ancho automático.
+   - **Wordmark.** El nombre de marca en tipografía **display**, mayúsculas, `--fs-ui` escalado a
+     `clamp(1.125rem, 2.4vw, 1.5rem)`, color `--fg`, `letter-spacing: -0.01em`.
+   Orden: **mascota a la izquierda, wordmark a su derecha**, alineados por el eje óptico (no por la
+   caja), separación `--space-3` (12px). Todo el bloque es un único enlace a `/` con
+   `aria-label` = nombre + " — inicio", y la mascota lleva `aria-hidden="true"` para no duplicar la
+   lectura.
 2. **Conmutador de idioma (centro-derecha).** `ES / EN`. Activo en `--accent` con peso 600; inactivo
    en `--fg-faint` con peso 500; el separador `/` en `--fg-faint`. Área táctil mínima 44×44px por
    opción aunque el texto sea pequeño (usa padding, no `font-size`).
@@ -315,6 +321,40 @@ Réplica estructural de la barra de las capturas de South Projects, adaptada a m
 - En viewports < 480px, si los tres elementos no caben, el botón de contacto reduce su texto a solo
   la flecha con `aria-label` intacto — **nunca** se colapsa en un menú hamburguesa (no hay
   navegación que esconder).
+
+---
+
+### 5.3 Tratamiento de la mascota (marca gráfica)
+
+El logo entregado es un **personaje monocromo de trazo grueso**: cara redondeada, flequillo en
+punta, cejas gruesas inclinadas, gafas de sol de lentes anchas y boca pequeña, todo en blanco sobre
+fondo negro. Encaja de forma natural con la paleta del §2 porque ya es un activo blanco/negro.
+
+**Reglas de uso:**
+
+1. **Formato: SVG.** Vectoriza el archivo entregado (llega como JPG). Nada de PNG ni JPG en el
+   header: el trazo debe verse nítido a cualquier densidad y el archivo debe pesar < 4 KB.
+2. **Color: `currentColor`.** Los trazos del SVG usan `fill="currentColor"` y heredan `--fg`
+   (`#F5F1E8`), **no** blanco puro. Así la mascota queda exactamente en el mismo crema que el
+   wordmark y no chirría.
+3. **Fondo transparente.** Elimina el fondo negro del JPG original; el logo se recorta sobre el
+   `--bg` de la página.
+4. **Área de respeto:** un margen libre alrededor igual al **25% de su altura**. Nada invade ese
+   espacio.
+5. **Tamaño mínimo:** 24px de alto. Por debajo, las gafas y las cejas se empastan y el logo deja de
+   leerse: en ese caso, usa solo el wordmark.
+6. **Prohibido:** teñir la mascota de ámbar, aplicarle degradados, sombras, contornos adicionales,
+   rotarla, deformarla o encerrarla en un círculo o cuadrado de color.
+7. **Otros usos previstos:** `favicon` (SVG + fallback ICO 32×32 y PNG 180×180 para
+   `apple-touch-icon`), imagen de `og:image` (mascota centrada sobre `--bg` en 1200×630) y marca de
+   agua opcional a gran tamaño y muy bajo contraste (`--black-800`) en secciones futuras — **nunca
+   en el hero**, que se mantiene limpio.
+8. **Animación permitida (opcional, discreta):** un parpadeo de las gafas o un ligero
+   `translateY` de 2px al hacer hover sobre el wordmark, `200ms`. Desactivado con
+   `prefers-reduced-motion`. Nada más.
+
+El archivo original entregado queda guardado en `marca-personal/assets/logo-mascota.jpg` como
+referencia para la vectorización.
 
 ---
 
@@ -565,32 +605,162 @@ siguiente no tenga que tocar el hero.
 - Disparador: `document.querySelector('[data-action="briefing"]')` → llama a `openBriefing()`.
 - `openBriefing()` en esta fase es un **stub** que hace `console.info('briefing:open')` y, si no hay
   implementación, navega a `/briefing` como fallback.
-- Comportamiento esperado en fase 2, tomado de las capturas de South Projects:
-  - Overlay a pantalla completa sobre `--bg`, con el mismo header (wordmark + idioma + "Volver").
-  - Contador `n / 9` centrado sobre el titular, en `--accent` para el número actual y `--fg-faint`
-    para el total, `--fs-counter`, con `tabular-nums`.
-  - Una pregunta por pantalla, titular en tipografía **display** en mayúsculas.
-  - Campo de entrada minimalista: sin caja, solo **hairline inferior** de 1px en `--fg`, texto
-    centrado, `--fs-lead`.
-  - Botones `Atrás` (secundario) y `Siguiente` (primario). El `Siguiente` se muestra en **crema**
-    mientras el campo esté vacío/no validado y pasa a **ámbar** cuando hay respuesta válida.
-  - Barra de progreso inferior de 3px que avanza `n/9` — la misma del hero, reutilizada.
-  - Los 9 pasos: (1) nombre, (2) de dónde eres, (3) WhatsApp con selector de país + prefijo,
-    (4) nombre de la marca, (5) descripción de la marca (textarea), y (6–9) por definir con el
-    cliente.
-  - Persistencia de las respuestas en `sessionStorage` para no perderlas al recargar.
-  - Al terminar: pantalla de cierre con CTA a **Agendar una llamada** (§12.2).
 
-### 12.2 Cal.com (fase 2)
+#### 12.1.1 Chrome común a todos los pasos
 
-- Disparador: `document.querySelector('[data-action="calendar"]')` → llama a `openCalendar()`.
-- `openCalendar()` en esta fase es un **stub** que hace `console.info('calendar:open')` y navega al
-  enlace directo de Cal.com como fallback (`https://cal.com/<usuario>/<evento>`).
-- En fase 2: embed de Cal.com en **modo popup**, con el script cargado **de forma perezosa** en el
-  primer clic (nunca en el head), tema `dark`, y `cssVarsPerTheme` mapeando
-  `--cal-brand: #E8A33D`, `--cal-bg: #000000`, `--cal-text: #F5F1E8`.
-- Prefill con los datos ya recogidos por el cuestionario (nombre, email/WhatsApp, notas) cuando el
-  usuario llega desde el paso 9.
+Tomado literalmente de las capturas de South Projects:
+
+- Overlay a pantalla completa sobre `--bg`, con el **mismo header** (logo + wordmark, conmutador
+  ES/EN y, en lugar del CTA de contacto, un botón crema **"← Volver" / "Go back"** con flecha a la
+  izquierda que cierra el cuestionario).
+- **Contador `n / 9`** centrado sobre el titular: el número actual en `--accent`, la barra `/` y el
+  total en `--fg-faint`, `--fs-counter`, con `font-variant-numeric: tabular-nums`.
+- **Titular de la pregunta** en tipografía **display**, mayúsculas, centrado,
+  `clamp(2rem, 7vw, 3.25rem)`, `line-height: 0.95`. Rompe en 2 líneas como máximo.
+- **Texto de ayuda** opcional bajo el titular: `--fs-body`, `--fg-muted`, centrado, `max-width: 42ch`.
+- **Campo de entrada minimalista:** sin caja ni fondo, solo **hairline inferior de 1px** en `--fg`,
+  texto centrado en `--fs-lead` color `--fg`, placeholder en `--fg-faint`. Al recibir foco, la
+  hairline pasa a `--accent` con transición de 180ms. Nunca `outline` por defecto del navegador:
+  sustitúyelo por ese cambio de línea **más** un `outline` visible para teclado.
+- **Botones de navegación:** `Atrás` (secundario, borde `--fg`) a la izquierda y `Siguiente`
+  (primario) a la derecha, en fila, mismo ancho, `gap: var(--space-4)`. En el paso 1 no hay `Atrás`
+  y el `Siguiente` ocupa el ancho completo.
+- **Regla de color del `Siguiente`** (visible en las capturas): permanece **crema** mientras el paso
+  no está respondido/validado y pasa a **ámbar** (`.is-ready`) en cuanto hay una respuesta válida.
+  Es el único feedback de validación en pasos no obligatorios.
+- **Barra de progreso inferior de 3px** que avanza `n/9` — el mismo componente que el hero,
+  reutilizado con la fuente de progreso cambiada.
+- **Transición entre pasos:** salida `opacity → 0` + `translateX(-24px)` y entrada desde
+  `translateX(24px)`, `320ms var(--ease)`; en sentido inverso al pulsar `Atrás`. Anulada con
+  `prefers-reduced-motion`.
+- **Teclado:** `Enter` avanza al paso siguiente si es válido (salvo en el textarea del paso 5, donde
+  `Enter` hace salto de línea y se avanza con `Cmd/Ctrl+Enter`); `Esc` pide confirmación de cierre.
+- **Foco:** al cambiar de paso, el foco va al campo de entrada; el titular se anuncia mediante una
+  región `aria-live="polite"`. El overlay es un `role="dialog" aria-modal="true"` con trampa de foco
+  y bloqueo de scroll del fondo.
+- **Persistencia:** todas las respuestas en `sessionStorage` bajo la clave `briefing`, restauradas al
+  recargar, junto con el paso actual.
+
+#### 12.1.2 Los 9 pasos
+
+| # | Pregunta (ES) | Pregunta (EN) | Tipo de campo | Validación |
+|---|---|---|---|---|
+| 1 | ¿CÓMO TE LLAMAS? | WHAT'S YOUR NAME? | Texto de una línea | Obligatorio, ≥ 2 caracteres |
+| 2 | ¿DE DÓNDE ERES? | WHERE ARE YOU FROM? | Texto de una línea | Obligatorio |
+| 3 | ¿CUÁL ES TU NÚMERO DE WHATSAPP? | WHAT'S YOUR WHATSAPP NUMBER? | Selector de país + campo numérico | Obligatorio, formato válido |
+| 4 | NOMBRE DE TU MARCA | NAME OF YOUR BRAND | Texto de una línea | Obligatorio |
+| 5 | CUÉNTANOS MÁS SOBRE TU MARCA | TELL US MORE ABOUT YOUR BRAND | Textarea autoexpansible | Obligatorio, ≥ 20 caracteres |
+| 6 | WEB ACTUAL O INSTAGRAM | CURRENT WEBSITE OR INSTAGRAM | Texto de una línea (`inputmode="url"`) | **Opcional** |
+| 7 | ¿QUÉ SERVICIO TE INTERESA? | WHAT SERVICE ARE YOU INTERESTED IN? | Lista de opciones múltiples (checkboxes) | Obligatorio, ≥ 1 opción |
+| 8 | TU PRESUPUESTO | YOUR BUDGET | Desplegable (`<select>`) | Obligatorio |
+| 9 | AGENDA TU VIDEOLLAMADA | BOOK YOUR VIDEO CALL | **Embed de Cal.com** (§12.2) | — (paso final) |
+
+**Detalle por paso:**
+
+- **Paso 3 — WhatsApp.** Ayuda: "Elige tu país y escribe el número sin el prefijo." /
+  "Pick your country, then type the number without the country code."
+  Dos controles apilados: un `<select>` de país que muestra **bandera + nombre + prefijo**
+  (`🇪🇸 España +34`) con hairline inferior propia y chevron `▾` a la derecha en `--fg-muted`; debajo,
+  el campo numérico con `inputmode="tel"` y placeholder de ejemplo local (`600 00 00 00`).
+  País por defecto deducido del idioma/locale del navegador. Se guarda el E.164 completo.
+- **Paso 5 — Descripción.** Ayuda: "¿En qué sector estás? ¿Cuál es tu producto o servicio? ¿Qué
+  quieres conseguir con él?" / "What industry are you in? What's your product or service? What do
+  you want to achieve with it?" Textarea que **crece con el contenido** (sin scroll interno hasta un
+  máximo de 8 líneas), misma hairline inferior, contador de caracteres discreto en `--fg-faint` solo
+  a partir de los 200 caracteres.
+- **Paso 6 — Web o Instagram.** Único paso **opcional**: el `Siguiente` ya está en ámbar desde el
+  inicio y el usuario puede saltarlo vacío. Acepta URL, dominio suelto o `@usuario`; se normaliza al
+  guardar. Nada de validación agresiva que bloquee.
+- **Paso 7 — Servicio.** **Selección múltiple.** Cada opción es una fila con caja completa:
+  `border: 1px solid var(--border)`, `border-radius: 2px`, alto 72px, `padding-inline: var(--space-5)`,
+  con un checkbox cuadrado de 22px a la izquierda (`border: 1px solid var(--fg-faint)`,
+  `border-radius: 2px`) y la etiqueta en `--fs-body` color `--fg`.
+  Estados: **hover/foco** → `border-color: var(--fg)` (la fila se ilumina, como en la captura);
+  **seleccionada** → `border-color: var(--accent)` y checkbox relleno de `--accent` con una marca
+  `✓` en `--on-accent`. Toda la fila es clicable (`<label>` envolviendo el `<input type="checkbox">`).
+  Opciones: `Diseño + Desarrollo Web` · `Landing Page` · `Rediseño de Web` · `E-commerce` ·
+  `Branding` · `Otro`.
+  (EN: `Web Design + Development` · `Landing Page` · `Website Redesign` · `E-commerce` ·
+  `Branding` · `Other`.)
+  Si se marca **Otro / Other**, aparece debajo un campo de texto libre con la misma hairline.
+- **Paso 8 — Presupuesto.** Un `<select>` nativo con la hairline inferior y el chevron `▾`, cuyo
+  estado vacío muestra `Elige una opción…` / `Choose an option…` en `--fg-faint`.
+  Se usa el `<select>` **nativo** a propósito: en móvil abre la rueda del sistema (como en la
+  captura) y es accesible sin código extra. Estilar solo el disparador; el desplegable lo pinta el
+  sistema.
+  Opciones: `Menos de 750 USD` · `750 – 1.500 USD` · `1.500 – 3.000 USD` · `3.000 – 5.000 USD` ·
+  `5.000+ USD`.
+  (EN: `Less than USD $750` · `USD $750 – $1,500` · `USD $1,500 – $3,000` · `USD $3,000 – $5,000` ·
+  `USD $5,000+`.)
+  Moneda: USD por defecto; si se decide localizar a EUR, se cambia en el diccionario de copys, no en
+  el código.
+- **Paso 9 — Agendar la videollamada.** Es la **pantalla final** del cuestionario y sustituye a
+  cualquier "pantalla de gracias" estática. Ver §12.2.
+
+#### 12.1.3 Envío de las respuestas
+
+- Al llegar al paso 9, las respuestas de los pasos 1–8 se **envían** (endpoint propio, webhook de
+  n8n, o el servicio que se decida) **antes** de mostrar el calendario, para no perder el lead si el
+  usuario no llega a reservar.
+- Estado de envío: el paso 9 muestra el calendario en cuanto el POST responde; si falla, se reintenta
+  una vez y, si vuelve a fallar, se muestra el calendario igualmente y las respuestas quedan en
+  `sessionStorage` con una marca `pendingSync`.
+- Nunca se bloquea la reserva por un fallo de envío.
+
+### 12.2 Cal.com — paso 9 y CTA del hero (fase 2)
+
+Dos puntos de entrada al mismo calendario, con presentación distinta:
+
+**A) Desde el hero y el header** (`data-action="calendar"` → `openCalendar()`):
+embed de Cal.com en **modo popup** sobre el hero, sin abandonar la página.
+
+**B) Como paso 9 del cuestionario:** embed **inline**, ocupando el cuerpo del paso, con el mismo
+header y contador `9 / 9` encima. Aquí el calendario **no** es un popup: está incrustado en el flujo,
+de modo que reservar la videollamada es el cierre natural del briefing.
+
+**Requisitos comunes:**
+
+- Titular del paso: `AGENDA TU VIDEOLLAMADA` / `BOOK YOUR VIDEO CALL`, en display, con ayuda
+  debajo: "Elige el día y la hora que mejor te vaya. Te llega la invitación al momento." /
+  "Pick the day and time that suits you. You'll get the invite right away."
+- **Carga perezosa obligatoria:** el script `embed.js` de Cal.com se inyecta **en el primer clic**
+  (caso A) o **al entrar en el paso 9** (caso B). Jamás en el `<head>` ni en el primer render (§11).
+- **Tema oscuro y tokens de marca:**
+  ```js
+  cal("ui", {
+    theme: "dark",
+    cssVarsPerTheme: {
+      dark: {
+        "cal-brand": "#E8A33D",
+        "cal-bg": "#000000",
+        "cal-bg-emphasis": "#121212",
+        "cal-text": "#F5F1E8",
+        "cal-text-emphasis": "#F5F1E8",
+        "cal-border": "#1C1C1C",
+        "cal-border-emphasis": "#2A2A2A"
+      }
+    },
+    hideEventTypeDetails: false,
+    layout: "month_view"
+  });
+  ```
+- **Prefill** con lo ya recogido en el cuestionario, para que el usuario no repita datos:
+  `name` (paso 1), `notes` (composición de los pasos 4, 5, 6, 7 y 8), y el teléfono del paso 3 en un
+  campo personalizado del tipo de evento. Se pasa por query string del embed
+  (`?name=…&notes=…&metadata[budget]=…`), con todos los valores `encodeURIComponent`.
+- **Tipo de evento:** videollamada de 30 minutos (a confirmar, Anexo D), con Google Meet o el
+  proveedor que se configure en Cal.com. La confirmación y el recordatorio los envía Cal.com; la web
+  no manda correos.
+- **Después de reservar:** escuchar el evento `bookingSuccessful` del embed y mostrar una pantalla de
+  cierre propia: titular display `NOS VEMOS PRONTO` / `SEE YOU SOON`, resumen de día y hora, y un
+  botón secundario para volver al inicio. Limpiar entonces el `sessionStorage` del briefing.
+- **Fallback sin JS o si el embed falla:** un enlace directo `https://cal.com/<usuario>/<evento>`
+  visible siempre bajo el calendario ("¿No ves el calendario? Reserva aquí"), con
+  `target="_blank" rel="noopener"`.
+- **Accesibilidad:** el embed vive dentro de un contenedor con `aria-label` descriptivo; en el caso A
+  (popup) se aplica trampa de foco y cierre con `Esc`; el iframe recibe un `title`.
+- **Altura:** mínimo `560px` en móvil y `640px` en desktop, con el contenedor en `min-block-size` y
+  scroll interno propio del embed — el fondo de la página no debe hacer scroll simultáneo.
 
 ### 12.3 Superficie pública que esta fase debe exponer
 
@@ -801,9 +971,10 @@ body{
 <a class="skip-link" href="#hero-title">Saltar al contenido</a>
 
 <header class="header" data-header>
-  <a class="header__brand" href="/" aria-label="Inicio">
+  <a class="header__brand" href="/" aria-label="Nombre — inicio">
+    <svg class="brand__mascot" width="32" height="32" viewBox="0 0 64 64"
+         fill="currentColor" aria-hidden="true" focusable="false">…</svg>
     <span class="wordmark" data-i18n="brand.name">NOMBRE</span>
-    <svg class="wordmark__glyph" width="16" height="16" aria-hidden="true" focusable="false">…</svg>
   </a>
 
   <div class="langswitch" role="group" aria-label="Idioma">
@@ -896,13 +1067,17 @@ addEventListener('scroll', () => {
 
 Confirmar con el cliente antes de cerrar la fase:
 
-1. **Nombre de marca y wordmark exacto**, y qué glifo de firma acompaña al nombre.
+1. **Nombre de marca y wordmark exacto** que acompaña a la mascota, y quién entrega el **SVG
+   vectorizado** del logo (o si se vectoriza a partir del JPG facilitado).
 2. **Familia display definitiva**: Anton (por defecto), Archivo Black o Bebas Neue.
 3. **Copy real** del eyebrow, H1, lead y nota, en ES y EN, con sus saltos de línea.
-4. **Usuario y tipo de evento de Cal.com** (`cal.com/<usuario>/<evento>`) y duración de la llamada.
-5. **Preguntas 6 a 9** del cuestionario (las 5 primeras están definidas por las capturas).
+4. **Usuario y slug del evento de Cal.com** (`cal.com/<usuario>/<evento>`).
+5. **Duración del tipo de evento de Cal.com** (30 min por defecto) y proveedor de videollamada.
+   Los 9 pasos del cuestionario ya están cerrados en §12.1.2.
 6. Si el hero muestra **disponibilidad real** o esas columnas quedan vacías.
 7. Si se autoalojan las fuentes (recomendado para rendimiento y RGPD) o se sirven desde Google Fonts.
+8. **Destino de las respuestas** del cuestionario: endpoint propio, webhook de n8n, correo o CRM.
+9. Si el presupuesto se muestra en **USD** (como en la referencia) o se localiza a **EUR**.
 
 > **Nota de referencia:** samu-webart.com no era accesible desde el entorno donde se redactó este
 > documento (bloqueo del proxy de red), por lo que su aportación —estructura general, escala
